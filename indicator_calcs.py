@@ -665,27 +665,19 @@ class Indicators():
         put_df = pd.DataFrame(options_list_puts)
         # add the market data columns to the dataframes
         Market_Data_Column_Names = [
-            'call_option_id',
-            'total_volume_call',
-            'bid_call',
-            'ask_call',
-            'last_call',
-            'quoteTime_call',
-            'daysToExpiration_call',
-            'put_option_id',
-            'total_volume_put',
-            'bid_put',
-            'ask_put',
-            'last_put',
-            'quoteTime_put',
-            'daysToExpiration_put'
+            'option_id',
+            'right',
+            'total_volume_option',
+            'bid',
+            'ask',
+            'last',
+            'quoteTime',
+            'daysToExpiration'
         ]
         # add the column names
         for i in range(len(Market_Data_Column_Names)):
-            if 'call' in Market_Data_Column_Names[i] :
-                call_df[Market_Data_Column_Names[i]] = float('NaN')
-            elif 'put' in Market_Data_Column_Names[i] :
-                put_df[Market_Data_Column_Names[i]] = float('NaN')
+            call_df[Market_Data_Column_Names[i]] = float('NaN')
+            put_df[Market_Data_Column_Names[i]] = float('NaN')
         # add the market data into each dataframe
         # if we don't get market data back for a row (ie. if it has a value of 'NaN', we delete the row
         call_df.set_index('conid', inplace=True)
@@ -693,19 +685,20 @@ class Indicators():
         for call_record in Calls_snapshot :
             conid_int = int(call_record['conid'])
             if conid_int in call_df.index :
+                call_df.loc[conid_int, 'right'] = 'C'
                 if '87_raw' in call_record.keys() :
                     # 87 is the volume but in a nn.nk format where k is the thousands, 87_raw is the actual float number
                     volume = float(call_record['87_raw'])
-                    call_df.loc[conid_int,'total_volume_call'] = volume
-                    call_df.loc[conid_int,'call_option_id'] = conid_int
+                    call_df.loc[conid_int,'total_volume'] = volume
+                    call_df.loc[conid_int,'option_id'] = conid_int
                     if '31' in call_record.keys():
-                        call_df.loc[conid_int,'last_call'] = float(self.filter_non_numeric(call_record['31']))
+                        call_df.loc[conid_int,'last'] = float(self.filter_non_numeric(call_record['31']))
                     if '84' in call_record.keys():
-                        call_df.loc[conid_int,'bid_call'] = float(self.filter_non_numeric(call_record['84']))
+                        call_df.loc[conid_int,'bid'] = float(self.filter_non_numeric(call_record['84']))
                     if '86' in call_record.keys():
-                        call_df.loc[conid_int,'ask_call'] = float(self.filter_non_numeric(call_record['86']))
+                        call_df.loc[conid_int,'ask'] = float(self.filter_non_numeric(call_record['86']))
                     if '_updated' in call_record.keys():
-                        call_df.loc[conid_int,'quoteTime_call'] = float(call_record['_updated'])
+                        call_df.loc[conid_int,'quoteTime'] = float(call_record['_updated'])
 
                     date_value_str = str(call_df.loc[conid_int,'maturityDate'])
                     datetime_obj = pd.to_datetime(date_value_str, format='%Y%m%d')
@@ -714,10 +707,11 @@ class Indicators():
                     timestampObj_est = datetime_obj
                     timestampObj_est.replace(hour=0, minute=0, second=0, microsecond=0)
                     daystoexpiration = (timestampObj_est - datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)).days
-                    call_df.loc[conid_int,'daysToExpiration_call'] = daystoexpiration
+                    call_df.loc[conid_int,'daysToExpiration'] = daystoexpiration
                 else :
-                    call_df.loc[conid_int,'total_volume_call'] = 0
-                    call_df.loc[conid_int,'daysToExpiration_call'] = 0
+                    call_df.loc[conid_int, 'right'] = 'C'
+                    call_df.loc[conid_int,'total_volume'] = 0
+                    call_df.loc[conid_int,'daysToExpiration'] = 0
                     self.logfiler.info("No volume returned for call ID %d", conid_int)
             else :
                 self.logfiler.info("Invalid ID in call quotes %d", conid_int)
@@ -726,19 +720,20 @@ class Indicators():
         for put_record in Puts_snapshot :
             conid_int = int(put_record['conid'])
             if conid_int in put_df.index :
+                put_df.loc[conid_int, 'right'] = 'P'
                 if '87_raw' in put_record.keys() :
                     # 87 is the volume but in a nn.nk format where k is the thousands, 87_raw is the actual float number
                     volume = float(put_record['87_raw'])
-                    put_df.loc[conid_int,'total_volume_put'] = volume
-                    put_df.loc[conid_int,'put_option_id'] = conid_int
+                    put_df.loc[conid_int,'total_volume'] = volume
+                    put_df.loc[conid_int,'option_id'] = conid_int
                     if '31' in put_record.keys():
-                        put_df.loc[conid_int,'last_put'] = float(self.filter_non_numeric(put_record['31']))
+                        put_df.loc[conid_int,'last'] = float(self.filter_non_numeric(put_record['31']))
                     if '84' in put_record.keys():
-                        put_df.loc[conid_int,'bid_put'] = float(self.filter_non_numeric(put_record['84']))
+                        put_df.loc[conid_int,'bid'] = float(self.filter_non_numeric(put_record['84']))
                     if '86' in put_record.keys():
-                        put_df.loc[conid_int,'ask_put'] = float(self.filter_non_numeric(put_record['86']))
+                        put_df.loc[conid_int,'ask'] = float(self.filter_non_numeric(put_record['86']))
                     if '_updated' in put_record.keys():
-                        put_df.loc[conid_int,'quoteTime_put'] = float(put_record['_updated'])
+                        put_df.loc[conid_int,'quoteTime'] = float(put_record['_updated'])
 
                     date_value_str = str(put_df.loc[conid_int,'maturityDate'])
                     datetime_obj = pd.to_datetime(date_value_str, format='%Y%m%d')
@@ -747,10 +742,11 @@ class Indicators():
                     timestampObj_est = datetime_obj
                     timestampObj_est.replace(hour=0, minute=0, second=0, microsecond=0)
                     daystoexpiration = (timestampObj_est - datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)).days
-                    put_df.loc[conid_int,'daysToExpiration_put'] = daystoexpiration
+                    put_df.loc[conid_int,'daysToExpiration'] = daystoexpiration
                 else :
-                    put_df.loc[conid_int,'total_volume_put'] = 0
-                    put_df.loc[conid_int,'daysToExpiration_put'] = 0
+                    put_df.loc[conid_int, 'right'] = 'P'
+                    put_df.loc[conid_int,'total_volume'] = 0
+                    put_df.loc[conid_int,'daysToExpiration'] = 0
                     self.logfiler.info("No volume returned for put ID %d", conid_int)
             else :
                 self.logfiler.info("Invalid ID in put quotes %d", conid_int)
@@ -774,15 +770,15 @@ class Indicators():
 
 
         # Get the calls with max volume
-        df_result = call_df.loc[(call_df['daysToExpiration_call'] > 5)]
-        df2_result = df_result.loc[df_result['total_volume_call'] == df_result['total_volume_call'].max()]
+        df_result = call_df.loc[(call_df['daysToExpiration'] > 5) and (call_df['right'] == 'C')]
+        df2_result = df_result.loc[df_result['total_volume'] == df_result['total_volume'].max()]
         if len(df2_result) == 0 :
             self.logfiler.info("No Call Market Data With Max Volume, proceeding without Option information")
             self.calls_options.append(str(int(0)))
             self.puts_options.append(str(int(0)))
             return self._frame
         max_vol_record = df2_result.iloc[0]
-        max_volume_calls_index = int(max_vol_record['call_option_id'])
+        max_volume_calls_index = int(max_vol_record['option_id'])
         if self.fixed_call_option_strike == '' :
             self.calls_options.append(str(int(max_volume_calls_index)))
             self.fixed_call_option_strike = str(int(max_volume_calls_index))
@@ -792,7 +788,7 @@ class Indicators():
         # Use the quoteTime to determine where in the dataframe to insert the data
         # so it matches up against the underlying candles from the previous minute
         # Loop through the DF
-        timestampvalue = call_df.loc[max_volume_calls_index,'quoteTime_call'] / 1000
+        timestampvalue = call_df.loc[max_volume_calls_index,'quoteTime'] / 1000
         timestampObj = datetime.fromtimestamp(timestampvalue)  # convert to est
         timestampObj.astimezone()    # assigns local timezone to the object
         timestampObj_local = timestampObj
@@ -808,7 +804,7 @@ class Indicators():
                                 str(call_df.loc[max_volume_calls_index, 'maturityDate']) + \
                                 str(call_df.loc[max_volume_calls_index, 'strike']) + \
                                 call_df.loc[max_volume_calls_index, 'right'] + " LastPrice=" + \
-                                str(call_df.loc[max_volume_calls_index,'last_call'])
+                                str(call_df.loc[max_volume_calls_index,'last'])
         self.logfiler.info("EST Time {est_time} For {Option_str} ".format(est_time=timestampstring, Option_str=Call_Description))
         Option_Prices_Current = False
         for frame_cnter in range(len(self._frame)):
@@ -821,16 +817,17 @@ class Indicators():
             #if (timestampObj_utc >= dt_rowdate) and timestampObj_utc <= (dt_rowdate + timedelta(minutes=1)):
             if (timestampObj_utc == dt_rowdate) :
                 Option_Prices_Current = True
-                self._frame.loc[row_id,'quoteTime_call'] = timestampstring
-                self._frame.loc[row_id,'call_option_id'] = max_volume_calls_index
-                self._frame.loc[row_id, 'call_strike'] = call_df.loc[max_volume_calls_index, 'strike']
-                self._frame.loc[row_id, 'call_expiration'] = call_df.loc[max_volume_calls_index, 'maturityDate']
-                self._frame.loc[row_id,'call_description'] = Call_Description
-                self._frame.loc[row_id,'bid_call'] = call_df.loc[max_volume_calls_index,'bid_call']
-                self._frame.loc[row_id,'ask_call'] = call_df.loc[max_volume_calls_index,'ask_call']
-                self._frame.loc[row_id,'last_call'] = call_df.loc[max_volume_calls_index,'last_call']
-                self._frame.loc[row_id,'total_volume_call'] = call_df.loc[max_volume_calls_index,'total_volume_call']
-                self._frame.loc[row_id,'daysToExpiration_call'] = call_df.loc[max_volume_calls_index,'daysToExpiration_call']
+                self._frame.loc[row_id,'quoteTime'] = timestampstring
+                self._frame.loc[row_id,'option_id'] = max_volume_calls_index
+                self._frame.loc[row_id, 'right'] = call_df.loc[max_volume_calls_index, 'right']
+                self._frame.loc[row_id, 'strike'] = call_df.loc[max_volume_calls_index, 'strike']
+                self._frame.loc[row_id, 'expiration'] = call_df.loc[max_volume_calls_index, 'maturityDate']
+                self._frame.loc[row_id,'description'] = Call_Description
+                self._frame.loc[row_id,'bid'] = call_df.loc[max_volume_calls_index,'bid']
+                self._frame.loc[row_id,'ask'] = call_df.loc[max_volume_calls_index,'ask']
+                self._frame.loc[row_id,'last'] = call_df.loc[max_volume_calls_index,'last']
+                self._frame.loc[row_id,'total_volume'] = call_df.loc[max_volume_calls_index,'total_volume']
+                self._frame.loc[row_id,'daysToExpiration'] = call_df.loc[max_volume_calls_index,'daysToExpiration']
                 break      #J. Jones - if we found the row to insert, we move on to the puts
 
         #
@@ -839,15 +836,15 @@ class Indicators():
         # J. JOnes - use the same row_id for puts as we did for calls to keep all data together for a candle.
 
         # Get the put with max volume
-        df_result = put_df.loc[(put_df['daysToExpiration_put'] > 5)]
-        df2_result = df_result.loc[df_result['total_volume_put'] == df_result['total_volume_put'].max()]
+        df_result = put_df.loc[(put_df['daysToExpiration'] > 5)]
+        df2_result = df_result.loc[df_result['total_volume'] == df_result['total_volume'].max()]
         if len(df2_result) == 0 :
             self.logfiler.info("No Put Market Data With Max Volume, proceeding without Option information")
             self.calls_options.append(str(int(0)))
             self.puts_options.append(str(int(0)))
             return self._frame
         max_vol_record = df2_result.iloc[0]
-        max_volume_puts_index = int(max_vol_record['put_option_id'])
+        max_volume_puts_index = int(max_vol_record['option_id'])
         if self.fixed_put_option_strike == '' :
             self.puts_options.append(str(int(max_volume_puts_index)))
             self.fixed_put_option_strike = str(int(max_volume_puts_index))
@@ -861,20 +858,21 @@ class Indicators():
                                 str(put_df.loc[max_volume_puts_index, 'maturityDate']) + \
                                 str(put_df.loc[max_volume_puts_index, 'strike']) + \
                                 put_df.loc[max_volume_puts_index, 'right'] + " LastPrice=" + \
-                                str(put_df.loc[max_volume_puts_index, 'last_put'])
+                                str(put_df.loc[max_volume_puts_index, 'last'])
         self.logfiler.info("EST Time {est_time} For {Option_str} ".format(est_time=timestampstring, Option_str=Put_Description))
 
         self._frame.loc[row_id, 'quoteTime_put'] = timestampstring
-        self._frame.loc[row_id, 'put_option_id'] = max_volume_puts_index
-        self._frame.loc[row_id, 'put_strike'] = put_df.loc[max_volume_puts_index, 'strike']
-        self._frame.loc[row_id, 'put_expiration'] = put_df.loc[max_volume_puts_index, 'maturityDate']
-        self._frame.loc[row_id, 'put_description'] = Put_Description
-        self._frame.loc[row_id, 'bid_put'] = put_df.loc[max_volume_puts_index, 'bid_put']
-        self._frame.loc[row_id, 'ask_put'] = put_df.loc[max_volume_puts_index, 'ask_put']
-        self._frame.loc[row_id, 'last_put'] = put_df.loc[max_volume_puts_index, 'last_put']
-        self._frame.loc[row_id, 'total_volume_put'] = put_df.loc[max_volume_puts_index, 'total_volume_put']
+        self._frame.loc[row_id, 'right'] = put_df.loc[max_volume_puts_index, 'right']
+        self._frame.loc[row_id, 'option_id'] = max_volume_puts_index
+        self._frame.loc[row_id, 'strike'] = put_df.loc[max_volume_puts_index, 'strike']
+        self._frame.loc[row_id, 'expiration'] = put_df.loc[max_volume_puts_index, 'maturityDate']
+        self._frame.loc[row_id, 'description'] = Put_Description
+        self._frame.loc[row_id, 'bid'] = put_df.loc[max_volume_puts_index, 'bid']
+        self._frame.loc[row_id, 'ask'] = put_df.loc[max_volume_puts_index, 'ask']
+        self._frame.loc[row_id, 'last'] = put_df.loc[max_volume_puts_index, 'last']
+        self._frame.loc[row_id, 'total_volume'] = put_df.loc[max_volume_puts_index, 'total_volume']
 
-        self._frame.loc[row_id, 'daysToExpiration_put'] = put_df.loc[max_volume_puts_index, 'daysToExpiration_put']
+        self._frame.loc[row_id, 'daysToExpiration'] = put_df.loc[max_volume_puts_index, 'daysToExpiration']
 
         return self._frame
 
