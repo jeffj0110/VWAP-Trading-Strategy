@@ -1,0 +1,91 @@
+2024-08-20 08:26:27,110 - IB_TradeBot - INFO - Running With Ticker Symbol : TQQQ
+2024-08-20 08:26:27,110 - IB_TradeBot - INFO - Signal Volume Threshold : 400.0
+2024-08-20 08:26:27,111 - functions - INFO - Working from default directory C:\Users\jeffj\OneDrive\Documents\FITSolutionsProjects\VWAP Trading Strategy 
+2024-08-20 08:26:27,111 - functions - INFO - Reading ./config/config.ini file 
+2024-08-20 08:26:29,280 - robot - INFO - IBK Account : DU4876095
+2024-08-20 08:26:29,280 - robot - INFO - IBK Display Name : Jeffrey S Jones
+2024-08-20 08:26:29,280 - functions - INFO - Bot created at 2024_08_20-082629_AM EST
+2024-08-20 08:26:29,280 - functions - INFO - Session created.
+2024-08-20 08:26:29,281 - functions - INFO - Portfolio created.
+2024-08-20 08:26:29,281 - functions - INFO - Trading with account: DU4876095
+2024-08-20 08:26:31,433 - functions - INFO - Retrieving Previous Orders For Today For Account : DU4876095
+2024-08-20 08:26:33,566 - functions - INFO - ================================================================================
+2024-08-20 08:27:44,331 - indicator_calcs - INFO - No volume returned for call ID 713777892
+2024-08-20 08:27:44,331 - indicator_calcs - INFO - No volume returned for call ID 716845243
+2024-08-20 08:27:44,332 - indicator_calcs - INFO - No volume returned for call ID 713778041
+2024-08-20 08:27:44,333 - indicator_calcs - INFO - No volume returned for call ID 715413279
+2024-08-20 08:27:44,334 - indicator_calcs - INFO - No volume returned for call ID 713778004
+2024-08-20 08:27:44,335 - indicator_calcs - INFO - No volume returned for call ID 716845333
+2024-08-20 08:27:44,335 - indicator_calcs - INFO - No volume returned for call ID 713778120
+2024-08-20 08:27:44,336 - indicator_calcs - INFO - No volume returned for call ID 715413346
+2024-08-20 08:27:44,337 - indicator_calcs - INFO - No volume returned for call ID 713778071
+2024-08-20 08:27:44,338 - indicator_calcs - INFO - No volume returned for call ID 716845443
+2024-08-20 08:27:44,339 - indicator_calcs - INFO - No volume returned for call ID 713778219
+2024-08-20 08:27:44,339 - indicator_calcs - INFO - No volume returned for call ID 715413405
+2024-08-20 08:27:44,340 - indicator_calcs - INFO - No volume returned for call ID 718460759
+2024-08-20 08:27:44,341 - indicator_calcs - INFO - No volume returned for call ID 719862777
+2024-08-20 08:27:44,342 - indicator_calcs - INFO - No volume returned for call ID 724000867
+2024-08-20 08:27:44,343 - indicator_calcs - INFO - No volume returned for call ID 718460845
+2024-08-20 08:27:44,344 - indicator_calcs - INFO - No volume returned for call ID 719862998
+2024-08-20 08:27:44,345 - indicator_calcs - INFO - No volume returned for call ID 704435576
+2024-08-20 08:27:44,345 - indicator_calcs - INFO - No volume returned for call ID 724000278
+2024-08-20 08:27:44,346 - indicator_calcs - INFO - No volume returned for call ID 719862918
+2024-08-20 08:27:44,347 - indicator_calcs - INFO - No volume returned for call ID 724000933
+2024-08-20 08:27:44,347 - indicator_calcs - INFO - No volume returned for call ID 718763321
+2024-08-20 08:27:44,348 - indicator_calcs - INFO - No volume returned for call ID 719863139
+2024-08-20 08:27:44,349 - indicator_calcs - INFO - No volume returned for call ID 704435597
+2024-08-20 08:27:44,350 - indicator_calcs - INFO - No volume returned for call ID 724000344
+2024-08-20 08:27:44,351 - indicator_calcs - INFO - No volume returned for call ID 719863067
+2024-08-20 08:27:44,352 - indicator_calcs - INFO - No volume returned for call ID 724000993
+2024-08-20 08:27:44,353 - indicator_calcs - INFO - No volume returned for call ID 718763394
+2024-08-20 08:27:44,354 - indicator_calcs - INFO - No volume returned for call ID 720141013
+2024-08-20 08:27:44,355 - indicator_calcs - INFO - No volume returned for call ID 704435631
+2024-08-20 08:27:44,356 - indicator_calcs - INFO - No volume returned for put ID 713778974
+2024-08-20 08:27:44,357 - indicator_calcs - INFO - No volume returned for put ID 715414698
+2024-08-20 08:27:44,358 - indicator_calcs - INFO - No volume returned for put ID 714042824
+2024-08-20 08:27:44,359 - indicator_calcs - INFO - No volume returned for put ID 715414664
+2024-08-20 08:27:44,360 - indicator_calcs - INFO - No volume returned for put ID 714042800
+2024-08-20 08:27:44,360 - indicator_calcs - INFO - No volume returned for put ID 716845750
+2024-08-20 08:27:44,361 - indicator_calcs - INFO - No volume returned for put ID 714042776
+2024-08-20 08:27:44,362 - indicator_calcs - INFO - No volume returned for put ID 718459725
+2024-08-20 08:27:44,363 - indicator_calcs - INFO - No volume returned for put ID 718459634
+2024-08-20 08:27:44,363 - indicator_calcs - INFO - No volume returned for put ID 714042758
+2024-08-20 08:27:44,364 - indicator_calcs - INFO - No volume returned for put ID 718459666
+2024-08-20 08:27:44,365 - indicator_calcs - INFO - No volume returned for put ID 718462141
+2024-08-20 08:27:44,366 - indicator_calcs - INFO - No volume returned for put ID 719864478
+2024-08-20 08:27:44,367 - indicator_calcs - INFO - No volume returned for put ID 704436027
+2024-08-20 08:27:44,367 - indicator_calcs - INFO - No volume returned for put ID 718461947
+2024-08-20 08:27:44,368 - indicator_calcs - INFO - No volume returned for put ID 719864258
+2024-08-20 08:27:44,369 - indicator_calcs - INFO - No volume returned for put ID 718461998
+2024-08-20 08:27:44,370 - indicator_calcs - INFO - No volume returned for put ID 719864333
+2024-08-20 08:27:44,371 - indicator_calcs - INFO - No volume returned for put ID 679299546
+2024-08-20 08:27:44,372 - indicator_calcs - INFO - No volume returned for put ID 721772105
+2024-08-20 08:27:44,373 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 08:27:44,374 - indicator_calcs - INFO - No volume returned for put ID 719864133
+2024-08-20 08:27:44,375 - indicator_calcs - INFO - No volume returned for put ID 718461890
+2024-08-20 08:27:44,375 - indicator_calcs - INFO - No volume returned for put ID 719864201
+2024-08-20 08:27:44,376 - indicator_calcs - INFO - No volume returned for put ID 704435993
+2024-08-20 08:27:44,377 - indicator_calcs - INFO - No volume returned for put ID 721772051
+2024-08-20 08:27:44,378 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 08:27:44,378 - indicator_calcs - INFO - No volume returned for put ID 719864006
+2024-08-20 08:27:44,380 - indicator_calcs - INFO - No Call Market Data, proceeding without Option information
+2024-08-20 08:27:44,397 - IB_TradeBot - INFO - Overriding Buy Quantity in config.ini from 4 to 2
+2024-08-20 08:27:48,844 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 08:27:48,844 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 08:27:48,856 - robot - INFO - Positions Within Bot *****
+2024-08-20 08:27:48,857 - robot - INFO -     No Bot Positions
+2024-08-20 08:27:48,857 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 08:27:48,857 - robot - INFO - No action
+2024-08-20 08:27:48,857 - robot - INFO - Outside of allowable trading times 10:00:00 to 15:45:00 EST
+2024-08-20 08:27:48,858 - robot - INFO - Or secondary trading times 00:00:00 to 00:00:00 EST
+2024-08-20 08:27:48,858 - robot - INFO - Sell CALLS if we have them.
+2024-08-20 08:27:48,858 - robot - INFO - Do not own any Calls
+2024-08-20 08:27:48,858 - robot - INFO - Sell PUTS if we have them.
+2024-08-20 08:27:48,858 - robot - INFO - Do not own any Puts
+2024-08-20 08:27:48,865 - robot - INFO - ================================================================================
+2024-08-20 08:27:48,865 - robot - INFO - Pausing for the next bar
+2024-08-20 08:27:48,865 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 08:27:48,865 - robot - INFO - Curr Time: 2024-08-20 12:27:48
+2024-08-20 08:27:48,865 - robot - INFO - Next Time: 2024-08-20 12:32:00
+2024-08-20 08:27:48,865 - robot - INFO - Sleep Time: 272
+2024-08-20 08:27:48,866 - robot - INFO - --------------------------------------------------------------------------------

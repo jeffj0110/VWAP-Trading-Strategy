@@ -1116,14 +1116,16 @@ class Indicators():
                 # Testing if signal validity via Volume test
                 # Repeat last signal unless significant volume is present
                 if self._frame['volume'][i] > Signal_Volume_Threshold:  # Threshold for accepting a candle as a valid signal
-                    # Buy CALLS condition
-                    if self._frame['vwap'][i] < self._frame['close'][i] :
+                    # Buy CALLS condition (VWAP < Close) AND (Previous VWAP > Previous Close)
+                    # We only go long when the Close crosses over the VWAP.
+                    if (self._frame['vwap'][i] < self._frame['close'][i]) and (self._frame['vwap'][i-1] > self._frame['close'][i-1]) :
                         no_action_calls_count = 0
                         buy_calls_count += 1
                         buy_puts_count = 0
                         signal_list.append('Buy Calls ' + str(buy_calls_count) + ' ' + symbol)
-                    elif self._frame['vwap'][i] > self._frame['close'][i] :
-                    # Buy PUTS condition
+                    elif (self._frame['vwap'][i] > self._frame['close'][i]) and ((self._frame['vwap'][i-1] < self._frame['close'][i-1])) :
+                    # Buy PUTS condition (VWAP > Close) AND (Previous VWAP < Previous Close)
+                    # We only go short when the Close crosses below the VWAP.
                         no_action_puts_count = 0
                         buy_puts_count += 1
                         buy_calls_count = 0
@@ -1157,8 +1159,6 @@ class Indicators():
         self._frame["buy_condition"] = pd.Series(signal_list).values
         self.stock_data = self._frame
         self.indicator_signal_list = signal_list
-
-
         return self._frame, signal_list, self.order_list
 
     def sma9_crossed_sma50(self):

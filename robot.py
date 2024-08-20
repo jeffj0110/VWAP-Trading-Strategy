@@ -975,10 +975,10 @@ class PyRobot():
         # There is an option in the config.ini file to set the stop loss to a max percentage loss
         # If that is exceeded, that position will be sold.
         #
-        if self.Stop_Loss_Exceeded() :
-            self.signals[-1] = "StopLoss"
-            self.stock_frame.at[self.stock_frame.index[-1],'buy_condition'] = "StopLoss"
-            signal = "StopLoss"
+        if self.Stop_Loss_Exceeded() or self.Gain_Limit_Exceeded() :
+            self.signals[-1] = "StopGainLoss"
+            self.stock_frame.at[self.stock_frame.index[-1],'buy_condition'] = "StopGainLoss"
+            signal = "StopGainLoss"
             self.hit_stop_loss = True
         else :
             signal = self.signals[-1]
@@ -1029,7 +1029,7 @@ class PyRobot():
                     self.logfiler.info("Buy and sell count: %d", buy_and_sell_count)
 
             # Sell CALLS logic
-            elif signal.startswith("No action") or signal.startswith("Buy Puts") or signal.startswith("StopLoss"):
+            elif signal.startswith("Buy Puts") or signal.startswith("StopGainLoss"):
                 self.logfiler.info("Sell CALLS if we have them.")
                 # sell condition met and we have CALLS in the portfolio, abs value between 9-50 ma is decreasing
                 call_symbol_owned = self.find_bot_owned_option('C')
@@ -1093,7 +1093,7 @@ class PyRobot():
                     buy_puts_count += 1
                     self.logfiler.info("Buy and sell count: %d", buy_and_sell_count)
 
-            elif signal.startswith("No action") or signal.startswith("Buy Calls") or signal.startswith("StopLoss"):
+            elif signal.startswith("Buy Calls") or signal.startswith("StopGainLoss"):
                 self.logfiler.info("Sell PUTS if we have them.")
                 # Potential optimization to Sell Logic : add 'or' statement to sell puts if 3 MA Slope turns positive
                 # Sell PUTS logic
@@ -1202,8 +1202,45 @@ class PyRobot():
                                 descr=position_desc, \
                                 avg_price=str(average_price), \
                                 mkt_price=str(Mkt_Price_Position)))
+                    if Mkt_Price_Position > (average_price*(1.0+self.stop_loss_perc)) :
+                        self.logfiler.info("Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format(\
+                            per=str((self.stop_loss_perc*100)), \
+                            descr=position_desc, \
+                            avg_price=str(average_price), \
+                            mkt_price=str(Mkt_Price_Position)))
+                        return True
+                    else :
+                        self.logfiler.info(
+                            "Did not Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format( \
+                                per=str((self.stop_loss_perc * 100)), \
+                                descr=position_desc, \
+                                avg_price=str(average_price), \
+                                mkt_price=str(Mkt_Price_Position)))
         return False
 
+    def Gain_Limit_Exceeded(self):
+        if self.stop_loss_perc != 0.0 :
+            for position_record in self.bot_portfolio.positions:
+                if self.bot_portfolio.positions[position_record]['quantity'] > 0 :
+                    quantity = self.bot_portfolio.positions[position_record]['quantity']
+                    average_price = float(self.bot_portfolio.positions[position_record]['purchase_price'])
+                    position_desc = self.bot_portfolio.positions[position_record]['description']
+                    Mkt_Price_Position = float(self.bot_portfolio.positions[position_record]['mktPrice'])
+                    if Mkt_Price_Position > (average_price*(1.0+self.stop_loss_perc)) :
+                        self.logfiler.info("Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format(\
+                            per=str((self.stop_loss_perc*100)), \
+                            descr=position_desc, \
+                            avg_price=str(average_price), \
+                            mkt_price=str(Mkt_Price_Position)))
+                        return True
+                    else :
+                        self.logfiler.info(
+                            "Did not Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format( \
+                                per=str((self.stop_loss_perc * 100)), \
+                                descr=position_desc, \
+                                avg_price=str(average_price), \
+                                mkt_price=str(Mkt_Price_Position)))
+        return False
 
     def buy_stock(self, symbol, option_symbol_str, instruction):
 
