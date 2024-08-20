@@ -1,0 +1,16 @@
+2024-08-20 10:18:52,334 - IB_TradeBot - INFO - Running With Ticker Symbol : TQQQ
+2024-08-20 10:18:52,335 - IB_TradeBot - INFO - Signal Volume Threshold : 1000.0
+2024-08-20 10:18:52,335 - functions - INFO - Working from default directory C:\Users\jeffj\OneDrive\Documents\FITSolutionsProjects\VWAP Trading Strategy 
+2024-08-20 10:18:52,341 - functions - INFO - Reading ./config/config.ini file 
+2024-08-20 10:18:54,639 - robot - INFO - IBK Account : DU4876095
+2024-08-20 10:18:54,639 - robot - INFO - IBK Display Name : Jeffrey S Jones
+2024-08-20 10:18:54,639 - functions - INFO - Bot created at 2024_08_20-101854_AM EST
+2024-08-20 10:18:54,640 - functions - INFO - Session created.
+2024-08-20 10:18:54,640 - functions - INFO - Portfolio created.
+2024-08-20 10:18:54,640 - functions - INFO - Trading with account: DU4876095
+2024-08-20 10:18:56,810 - functions - INFO - Retrieving Previous Orders For Today For Account : DU4876095
+2024-08-20 10:18:58,961 - functions - INFO - ================================================================================
+2024-08-20 10:20:12,812 - indicator_calcs - INFO - No volume returned for call ID 719862918
+2024-08-20 10:20:12,887 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:20:12,901 - indicator_calcs - INFO - No volume returned for put ID 721772051
+2024-08-20 10:20:12,903 - indicator_calcs - INFO - No volume returned for put ID 718461665

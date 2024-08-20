@@ -752,7 +752,7 @@ class Indicators():
                 self.logfiler.info("Invalid ID in put quotes %d", conid_int)
                 return self._frame
         call_df.drop(columns=['listingExchange', 'cusip', 'coupon'], inplace=True)
-        call_df.dropna(inplace=True)   # if we don't get market data back for certain rows, we delete them
+        #call_df.dropna(inplace=True)   # if we don't get market data back for certain rows, we delete them
         if len(call_df) == 0 :
             self.logfiler.info("No Call Market Data, proceeding without Option information")
             put_df.drop(columns=['listingExchange', 'cusip', 'coupon'], inplace=True)
@@ -761,7 +761,7 @@ class Indicators():
             self.puts_options.append(str(int(0)))
             return self._frame
         put_df.drop(columns=['listingExchange', 'cusip', 'coupon'], inplace=True)
-        put_df.dropna(inplace=True)   # if we don't get market data back for certain rows, we delete them
+        #put_df.dropna(inplace=True)   # if we don't get market data back for certain rows, we delete them
         if len(put_df) == 0 :
             self.logfiler.info("No Put Market Data, proceeding without Option information")
             self.calls_options.append(str(int(0)))
@@ -770,7 +770,7 @@ class Indicators():
 
 
         # Get the calls with max volume
-        df_result = call_df.loc[(call_df['daysToExpiration'] > 5) and (call_df['right'] == 'C')]
+        df_result = call_df.loc[(call_df['daysToExpiration'] > 5)]
         df2_result = df_result.loc[df_result['total_volume'] == df_result['total_volume'].max()]
         if len(df2_result) == 0 :
             self.logfiler.info("No Call Market Data With Max Volume, proceeding without Option information")
@@ -851,30 +851,34 @@ class Indicators():
         else :
             self.puts_options.append(str(int(max_volume_puts_index)))
 
-        if not Option_Prices_Current :
-            self.logfiler.info("Option Quote Times {tm} Outside of Historical Price Data".format(tm=timestampstring))
-            return self._frame
         Put_Description = put_df.loc[max_volume_puts_index, 'symbol'] + \
-                                str(put_df.loc[max_volume_puts_index, 'maturityDate']) + \
-                                str(put_df.loc[max_volume_puts_index, 'strike']) + \
-                                put_df.loc[max_volume_puts_index, 'right'] + " LastPrice=" + \
-                                str(put_df.loc[max_volume_puts_index, 'last'])
-        self.logfiler.info("EST Time {est_time} For {Option_str} ".format(est_time=timestampstring, Option_str=Put_Description))
-
-        self._frame.loc[row_id, 'quoteTime_put'] = timestampstring
-        self._frame.loc[row_id, 'right'] = put_df.loc[max_volume_puts_index, 'right']
-        self._frame.loc[row_id, 'option_id'] = max_volume_puts_index
-        self._frame.loc[row_id, 'strike'] = put_df.loc[max_volume_puts_index, 'strike']
-        self._frame.loc[row_id, 'expiration'] = put_df.loc[max_volume_puts_index, 'maturityDate']
-        self._frame.loc[row_id, 'description'] = Put_Description
-        self._frame.loc[row_id, 'bid'] = put_df.loc[max_volume_puts_index, 'bid']
-        self._frame.loc[row_id, 'ask'] = put_df.loc[max_volume_puts_index, 'ask']
-        self._frame.loc[row_id, 'last'] = put_df.loc[max_volume_puts_index, 'last']
-        self._frame.loc[row_id, 'total_volume'] = put_df.loc[max_volume_puts_index, 'total_volume']
-
-        self._frame.loc[row_id, 'daysToExpiration'] = put_df.loc[max_volume_puts_index, 'daysToExpiration']
+                          str(put_df.loc[max_volume_puts_index, 'maturityDate']) + \
+                          str(put_df.loc[max_volume_puts_index, 'strike']) + \
+                          put_df.loc[max_volume_puts_index, 'right'] + " LastPrice=" + \
+                          str(put_df.loc[max_volume_puts_index, 'last'])
+        self.logfiler.info(
+            "EST Time {est_time} For {Option_str} ".format(est_time=timestampstring, Option_str=Put_Description))
 
         return self._frame
+
+        #if not Option_Prices_Current :
+        #    self.logfiler.info("Option Quote Times {tm} Outside of Historical Price Data".format(tm=timestampstring))
+        #    return self._frame
+
+        #self._frame.loc[row_id, 'quoteTime_put'] = timestampstring
+        #self._frame.loc[row_id, 'right'] = put_df.loc[max_volume_puts_index, 'right']
+        #self._frame.loc[row_id, 'option_id'] = max_volume_puts_index
+        #self._frame.loc[row_id, 'strike'] = put_df.loc[max_volume_puts_index, 'strike']
+        #self._frame.loc[row_id, 'expiration'] = put_df.loc[max_volume_puts_index, 'maturityDate']
+        #self._frame.loc[row_id, 'description'] = Put_Description
+        #self._frame.loc[row_id, 'bid'] = put_df.loc[max_volume_puts_index, 'bid']
+        #self._frame.loc[row_id, 'ask'] = put_df.loc[max_volume_puts_index, 'ask']
+        #self._frame.loc[row_id, 'last'] = put_df.loc[max_volume_puts_index, 'last']
+        #self._frame.loc[row_id, 'total_volume'] = put_df.loc[max_volume_puts_index, 'total_volume']
+
+        #self._frame.loc[row_id, 'daysToExpiration'] = put_df.loc[max_volume_puts_index, 'daysToExpiration']
+
+        #return self._frame
 
     def populate_order_data_2(self, order, underlying_symbol, order_response, hist_orders):
         """Populates order data columns in dataframe"""

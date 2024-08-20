@@ -1,0 +1,112 @@
+2024-08-20 10:22:35,565 - IB_TradeBot - INFO - Running With Ticker Symbol : TQQQ
+2024-08-20 10:22:35,565 - IB_TradeBot - INFO - Signal Volume Threshold : 1000.0
+2024-08-20 10:22:35,566 - functions - INFO - Working from default directory C:\Users\jeffj\OneDrive\Documents\FITSolutionsProjects\VWAP Trading Strategy 
+2024-08-20 10:22:35,566 - functions - INFO - Reading ./config/config.ini file 
+2024-08-20 10:22:37,740 - robot - INFO - IBK Account : DU4876095
+2024-08-20 10:22:37,741 - robot - INFO - IBK Display Name : Jeffrey S Jones
+2024-08-20 10:22:37,741 - functions - INFO - Bot created at 2024_08_20-102237_AM EST
+2024-08-20 10:22:37,741 - functions - INFO - Session created.
+2024-08-20 10:22:37,741 - functions - INFO - Portfolio created.
+2024-08-20 10:22:37,742 - functions - INFO - Trading with account: DU4876095
+2024-08-20 10:22:39,916 - functions - INFO - Retrieving Previous Orders For Today For Account : DU4876095
+2024-08-20 10:22:42,179 - functions - INFO - ================================================================================
+2024-08-20 10:23:56,467 - indicator_calcs - INFO - No volume returned for call ID 719862918
+2024-08-20 10:23:56,576 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:23:56,590 - indicator_calcs - INFO - No volume returned for put ID 721772051
+2024-08-20 10:23:56,591 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 10:23:56,605 - indicator_calcs - INFO - EST Time 2024-08-20 10:23:26 For TQQQ2024083072.0C LastPrice=2.58 
+2024-08-20 10:23:56,611 - indicator_calcs - INFO - Option Quote Times 2024-08-20 10:23:26 Outside of Historical Price Data
+2024-08-20 10:23:56,644 - IB_TradeBot - INFO - Overriding Buy Quantity in config.ini from 4 to 2
+2024-08-20 10:24:01,376 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 10:24:01,376 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 10:24:01,400 - robot - INFO - Positions Within Bot *****
+2024-08-20 10:24:01,400 - robot - INFO -     No Bot Positions
+2024-08-20 10:24:01,400 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 10:24:01,400 - robot - INFO - No action
+2024-08-20 10:24:01,416 - robot - INFO - ================================================================================
+2024-08-20 10:24:01,416 - robot - INFO - Pausing for the next bar
+2024-08-20 10:24:01,416 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:24:01,416 - robot - INFO - Curr Time: 2024-08-20 14:24:01
+2024-08-20 10:24:01,416 - robot - INFO - Next Time: 2024-08-20 14:29:00
+2024-08-20 10:24:01,416 - robot - INFO - Sleep Time: 319
+2024-08-20 10:24:01,416 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:29:22,983 - robot - INFO - Retrieving Prices For TQQQ
+2024-08-20 10:29:23,003 - indicator_calcs - INFO - Starting Refresh Of Indicators
+2024-08-20 10:29:27,591 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:29:27,608 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 10:29:27,615 - indicator_calcs - INFO - EST Time 2024-08-20 10:28:12 For TQQQ2024083071.5C LastPrice=2.64 
+2024-08-20 10:29:27,622 - indicator_calcs - INFO - Option Quote Times 2024-08-20 10:28:12 Outside of Historical Price Data
+2024-08-20 10:29:27,643 - indicator_calcs - INFO - Ending Refresh Of Indicators
+2024-08-20 10:29:32,466 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 10:29:32,466 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 10:29:32,490 - robot - INFO - Positions Within Bot *****
+2024-08-20 10:29:32,490 - robot - INFO -     No Bot Positions
+2024-08-20 10:29:32,490 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 10:29:32,490 - robot - INFO - No action
+2024-08-20 10:29:32,498 - robot - INFO - ================================================================================
+2024-08-20 10:29:32,498 - robot - INFO - Pausing for the next bar
+2024-08-20 10:29:32,498 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:29:32,498 - robot - INFO - Curr Time: 2024-08-20 14:29:32
+2024-08-20 10:29:32,498 - robot - INFO - Next Time: 2024-08-20 14:34:00
+2024-08-20 10:29:32,498 - robot - INFO - Sleep Time: 288
+2024-08-20 10:29:32,499 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:34:22,753 - robot - INFO - Retrieving Prices For TQQQ
+2024-08-20 10:34:22,761 - indicator_calcs - INFO - Starting Refresh Of Indicators
+2024-08-20 10:34:27,356 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:34:27,372 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 10:34:27,379 - indicator_calcs - INFO - EST Time 2024-08-20 10:34:22 For TQQQ2024083071.5C LastPrice=2.64 
+2024-08-20 10:34:27,385 - indicator_calcs - INFO - Option Quote Times 2024-08-20 10:34:22 Outside of Historical Price Data
+2024-08-20 10:34:27,405 - indicator_calcs - INFO - Ending Refresh Of Indicators
+2024-08-20 10:34:32,112 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 10:34:32,112 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 10:34:32,132 - robot - INFO - Positions Within Bot *****
+2024-08-20 10:34:32,132 - robot - INFO -     No Bot Positions
+2024-08-20 10:34:32,132 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 10:34:32,132 - robot - INFO - No action
+2024-08-20 10:34:32,139 - robot - INFO - ================================================================================
+2024-08-20 10:34:32,139 - robot - INFO - Pausing for the next bar
+2024-08-20 10:34:32,139 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:34:32,140 - robot - INFO - Curr Time: 2024-08-20 14:34:32
+2024-08-20 10:34:32,140 - robot - INFO - Next Time: 2024-08-20 14:39:00
+2024-08-20 10:34:32,140 - robot - INFO - Sleep Time: 288
+2024-08-20 10:34:32,140 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:39:22,482 - robot - INFO - Retrieving Prices For TQQQ
+2024-08-20 10:39:22,495 - indicator_calcs - INFO - Starting Refresh Of Indicators
+2024-08-20 10:39:27,654 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:39:27,670 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 10:39:27,678 - indicator_calcs - INFO - EST Time 2024-08-20 10:38:46 For TQQQ2024083071.5C LastPrice=2.64 
+2024-08-20 10:39:27,683 - indicator_calcs - INFO - Option Quote Times 2024-08-20 10:38:46 Outside of Historical Price Data
+2024-08-20 10:39:27,705 - indicator_calcs - INFO - Ending Refresh Of Indicators
+2024-08-20 10:39:32,217 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 10:39:32,217 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 10:39:32,247 - robot - INFO - Positions Within Bot *****
+2024-08-20 10:39:32,247 - robot - INFO -     No Bot Positions
+2024-08-20 10:39:32,247 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 10:39:32,247 - robot - INFO - No action
+2024-08-20 10:39:32,254 - robot - INFO - ================================================================================
+2024-08-20 10:39:32,255 - robot - INFO - Pausing for the next bar
+2024-08-20 10:39:32,255 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:39:32,255 - robot - INFO - Curr Time: 2024-08-20 14:39:32
+2024-08-20 10:39:32,255 - robot - INFO - Next Time: 2024-08-20 14:44:00
+2024-08-20 10:39:32,255 - robot - INFO - Sleep Time: 288
+2024-08-20 10:39:32,256 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:44:22,474 - robot - INFO - Retrieving Prices For TQQQ
+2024-08-20 10:44:22,482 - indicator_calcs - INFO - Starting Refresh Of Indicators
+2024-08-20 10:44:27,149 - indicator_calcs - INFO - No volume returned for put ID 718461833
+2024-08-20 10:44:27,165 - indicator_calcs - INFO - No volume returned for put ID 718461665
+2024-08-20 10:44:27,173 - indicator_calcs - INFO - EST Time 2024-08-20 10:42:43 For TQQQ2024083071.5C LastPrice=2.36 
+2024-08-20 10:44:27,178 - indicator_calcs - INFO - Option Quote Times 2024-08-20 10:42:43 Outside of Historical Price Data
+2024-08-20 10:44:27,204 - indicator_calcs - INFO - Ending Refresh Of Indicators
+2024-08-20 10:44:31,774 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 10:44:31,774 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 10:44:31,796 - robot - INFO - Positions Within Bot *****
+2024-08-20 10:44:31,796 - robot - INFO -     No Bot Positions
+2024-08-20 10:44:31,796 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 10:44:31,796 - robot - INFO - No action
+2024-08-20 10:44:31,803 - robot - INFO - ================================================================================
+2024-08-20 10:44:31,803 - robot - INFO - Pausing for the next bar
+2024-08-20 10:44:31,803 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 10:44:31,803 - robot - INFO - Curr Time: 2024-08-20 14:44:31
+2024-08-20 10:44:31,803 - robot - INFO - Next Time: 2024-08-20 14:49:00
+2024-08-20 10:44:31,803 - robot - INFO - Sleep Time: 289
+2024-08-20 10:44:31,803 - robot - INFO - --------------------------------------------------------------------------------
