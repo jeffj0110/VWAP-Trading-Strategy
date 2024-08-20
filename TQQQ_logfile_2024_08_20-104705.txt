@@ -97,3 +97,24 @@
 2024-08-20 11:03:32,810 - robot - INFO - Next Time: 2024-08-20 15:08:00
 2024-08-20 11:03:32,810 - robot - INFO - Sleep Time: 288
 2024-08-20 11:03:32,810 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 11:08:22,984 - robot - INFO - Retrieving Prices For TQQQ
+2024-08-20 11:08:22,994 - indicator_calcs - INFO - Starting Refresh Of Indicators
+2024-08-20 11:08:27,733 - indicator_calcs - INFO - No volume returned for put ID 718461554
+2024-08-20 11:08:27,735 - indicator_calcs - INFO - No volume returned for put ID 719863893
+2024-08-20 11:08:27,741 - indicator_calcs - INFO - EST Time 2024-08-20 11:08:14 For TQQQ2024083071.5C LastPrice=2.58 
+2024-08-20 11:08:27,750 - indicator_calcs - INFO - EST Time 2024-08-20 11:08:14 For TQQQ2024083070.0P LastPrice=2.55 
+2024-08-20 11:08:27,750 - indicator_calcs - INFO - Option Quote Times 2024-08-20 11:08:14 Outside of Historical Price Data
+2024-08-20 11:08:27,777 - indicator_calcs - INFO - Ending Refresh Of Indicators
+2024-08-20 11:08:32,251 - robot - INFO - Positions At Interactive Brokers *****
+2024-08-20 11:08:32,251 - robot - INFO -     No IBK Positions for Symbol TQQQ
+2024-08-20 11:08:32,282 - robot - INFO - Positions Within Bot *****
+2024-08-20 11:08:32,283 - robot - INFO -     No Bot Positions
+2024-08-20 11:08:32,283 - robot - INFO - Overriding Positions Within Bot To Match IBKR Positions *****
+2024-08-20 11:08:32,283 - robot - INFO - No action
+2024-08-20 11:08:32,294 - robot - INFO - ================================================================================
+2024-08-20 11:08:32,294 - robot - INFO - Pausing for the next bar
+2024-08-20 11:08:32,294 - robot - INFO - --------------------------------------------------------------------------------
+2024-08-20 11:08:32,294 - robot - INFO - Curr Time: 2024-08-20 15:08:32
+2024-08-20 11:08:32,294 - robot - INFO - Next Time: 2024-08-20 15:13:00
+2024-08-20 11:08:32,295 - robot - INFO - Sleep Time: 288
+2024-08-20 11:08:32,295 - robot - INFO - --------------------------------------------------------------------------------
