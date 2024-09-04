@@ -16,7 +16,7 @@ def setup_func(logger_hndl=None):
 
     CLIENT_ID, REDIRECT_URI, ACCOUNT_NUMBER, ACCOUNT_ID, \
     START_TRADING_TIME, END_TRADING_TIME, SECOND_START_TRADING_TIME, SECOND_END_TRADING_TIME, LIQUIDATE_DAY_TRADES_TIME, \
-    DEFAULT_ORDER_TYPE, NO_TRADING_LOSS, DEFAULT_BUY_QUANTITY, Stop_Loss_Perc  = import_credentials(log_hndl=logger_hndl)
+    DEFAULT_ORDER_TYPE, NO_TRADING_LOSS, DEFAULT_BUY_QUANTITY, Stop_Loss_Perc, Gain_Cap_Perc  = import_credentials(log_hndl=logger_hndl)
 
     # Initalize the robot with my credentials.
     trading_robot = PyRobot(
@@ -33,6 +33,7 @@ def setup_func(logger_hndl=None):
         no_loss_setting=NO_TRADING_LOSS,
         default_buy_quantity=int(DEFAULT_BUY_QUANTITY),
         StopLoss=float(float(Stop_Loss_Perc) / 100.0),
+        GainCap=float(float(Gain_Cap_Perc) / 100.0),
         lgfile = logger_hndl
     )
 
@@ -104,9 +105,14 @@ def import_credentials(log_hndl=None):
     else:
         Stop_Loss_Perc = float(0.0)
 
+    if config.has_option('main', 'GAIN_CAP_PERCENTAGE') :
+        Gain_Cap_Perc = float(config.get('main', 'GAIN_CAP_PERCENTAGE'))
+    else:
+        Gain_Cap_Perc = float(0.0)
+
     DEFAULT_BUY_QUANTITY = config.get('main', 'DEFAULT_BUY_QUANTITY')
 
     return CLIENT_ID, REDIRECT_URI, ACCOUNT_NUMBER, ACCOUNT_ID, \
            START_TRADING_TIME, END_TRADING_TIME, SECOND_START_TRADING_TIME, SECOND_END_TRADING_TIME,\
            LIQUIDATE_DAY_TRADES_TIME, \
-           DEFAULT_ORDER_TYPE, No_Trading_Loss, DEFAULT_BUY_QUANTITY, Stop_Loss_Perc
+           DEFAULT_ORDER_TYPE, No_Trading_Loss, DEFAULT_BUY_QUANTITY, Stop_Loss_Perc, Gain_Cap_Perc

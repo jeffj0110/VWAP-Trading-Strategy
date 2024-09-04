@@ -770,7 +770,7 @@ class Indicators():
 
 
         # Get the calls with max volume
-        df_result = call_df.loc[(call_df['daysToExpiration'] > 5)]
+        df_result = call_df.loc[(call_df['daysToExpiration'] > 3)]
         df2_result = df_result.loc[df_result['total_volume'] == df_result['total_volume'].max()]
         if len(df2_result) == 0 :
             self.logfiler.info("No Call Market Data With Max Volume, proceeding without Option information")
@@ -836,7 +836,7 @@ class Indicators():
         # J. JOnes - use the same row_id for puts as we did for calls to keep all data together for a candle.
 
         # Get the put with max volume
-        df_result = put_df.loc[(put_df['daysToExpiration'] > 5)]
+        df_result = put_df.loc[(put_df['daysToExpiration'] > 3)]
         df2_result = df_result.loc[df_result['total_volume'] == df_result['total_volume'].max()]
         if len(df2_result) == 0 :
             self.logfiler.info("No Put Market Data With Max Volume, proceeding without Option information")

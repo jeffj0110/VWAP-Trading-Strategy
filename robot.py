@@ -38,7 +38,8 @@ class PyRobot():
                  default_order_type=None, \
                  no_loss_setting=None, \
                  default_buy_quantity=1, \
-                 StopLoss=float(1.0), \
+                 StopLoss=float(0.0), \
+                 GainCap=float(0.0),\
                  lgfile = None
                  ) -> None:
         """Initalizes a new instance of the robot and logs into the API platform specified.
@@ -78,6 +79,7 @@ class PyRobot():
         self.historical_prices = {}
         self.def_buy_quantity = default_buy_quantity
         self.stop_loss_perc = StopLoss
+        self.gain_cap_perc = GainCap
         self.hit_stop_loss = False
         self.logfiler = lgfile
         self.session.logger_handle = self.logfiler
@@ -1011,7 +1013,7 @@ class PyRobot():
                 # For VWAP Strategy, changed to buy when one buy signal occurrs
                 # 1/24/2022 added the condition to avoid buying calls when holding puts to avoid going vertical unintentially
                 instruction = "BUY"
-                if buy_n >= 1 and calls_quantity < 1 and puts_quantity < 1:
+                if buy_n >= 1 and calls_quantity < 1 :
                     # if we don't own any of the current option symbol, otherwise, don't buy
                     if not self.bot_portfolio.in_portfolio(call_symbol):
                         self.logfiler.info("Buying CALL option {call_sym} for {sym} at time: {tm}".format(call_sym=call_symbol, sym=symbol, tm=datetime.now().strftime("%H:%M:%S")))
@@ -1068,10 +1070,10 @@ class PyRobot():
             # Buy PUTS logic
             if signal.startswith("Buy Puts") :
 
-                # buy puts condition met and no position held in TD
+                # buy puts condition met and no position held
                 # J. Jones - changed to buy position when buy_n 1 or greater for vwap strategy
-                # 1/24/2022 added the condition to avoid buying calls when holding puts to avoid going vertical unintentially
-                if buy_n >= 1 and puts_quantity < 1 and calls_quantity < 1:
+                if buy_n >= 1 and puts_quantity < 1 :
+                #if buy_n >= 1 and puts_quantity < 1 and calls_quantity < 1:
                     instruction = "BUY"
 
                     # if we don't own any of the current option symbol, otherwise, don't buy
@@ -1202,33 +1204,20 @@ class PyRobot():
                                 descr=position_desc, \
                                 avg_price=str(average_price), \
                                 mkt_price=str(Mkt_Price_Position)))
-                    if Mkt_Price_Position > (average_price*(1.0+self.stop_loss_perc)) :
-                        self.logfiler.info("Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format(\
-                            per=str((self.stop_loss_perc*100)), \
-                            descr=position_desc, \
-                            avg_price=str(average_price), \
-                            mkt_price=str(Mkt_Price_Position)))
-                        return True
-                    else :
-                        self.logfiler.info(
-                            "Did not Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format( \
-                                per=str((self.stop_loss_perc * 100)), \
-                                descr=position_desc, \
-                                avg_price=str(average_price), \
-                                mkt_price=str(Mkt_Price_Position)))
+
         return False
 
     def Gain_Limit_Exceeded(self):
-        if self.stop_loss_perc != 0.0 :
+        if self.gain_cap_perc != 0.0 :
             for position_record in self.bot_portfolio.positions:
                 if self.bot_portfolio.positions[position_record]['quantity'] > 0 :
                     quantity = self.bot_portfolio.positions[position_record]['quantity']
                     average_price = float(self.bot_portfolio.positions[position_record]['purchase_price'])
                     position_desc = self.bot_portfolio.positions[position_record]['description']
                     Mkt_Price_Position = float(self.bot_portfolio.positions[position_record]['mktPrice'])
-                    if Mkt_Price_Position > (average_price*(1.0+self.stop_loss_perc)) :
+                    if Mkt_Price_Position > (average_price*(1.0+self.gain_cap_perc)) :
                         self.logfiler.info("Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format(\
-                            per=str((self.stop_loss_perc*100)), \
+                            per=str((self.gain_cap_perc*100)), \
                             descr=position_desc, \
                             avg_price=str(average_price), \
                             mkt_price=str(Mkt_Price_Position)))
@@ -1236,7 +1225,7 @@ class PyRobot():
                     else :
                         self.logfiler.info(
                             "Did not Hit Gain Limit of {per}% On {descr}, Purch Price {avg_price}, Mkt Price {mkt_price}".format( \
-                                per=str((self.stop_loss_perc * 100)), \
+                                per=str((self.gain_cap_perc * 100)), \
                                 descr=position_desc, \
                                 avg_price=str(average_price), \
                                 mkt_price=str(Mkt_Price_Position)))

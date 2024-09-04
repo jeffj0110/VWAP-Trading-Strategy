@@ -121,8 +121,8 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
 
         if trading_robot.hit_stop_loss :
             if trading_robot.stock_frame["volume"][-1] < Signal_Volume_Threshold :
-                trading_robot.stock_frame.at[trading_robot.stock_frame.index[-1], 'buy_condition'] = "StopLoss"
-                trading_robot.signals[-1] = "StopLoss"
+                trading_robot.stock_frame.at[trading_robot.stock_frame.index[-1], 'buy_condition'] = "StopGainLoss"
+                trading_robot.signals[-1] = "StopGainLoss"
             else:
                 trading_robot.hit_stop_loss = False
 
