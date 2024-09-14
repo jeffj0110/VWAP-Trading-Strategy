@@ -723,6 +723,14 @@ class PyRobot():
 
         return latest_prices
 
+    def round_to_next_5_min_mark(self, dt):
+        mins_to_add = (-(dt.minute % 5) + 5) % 5
+        if mins_to_add == 0:
+            mins_to_add = 5
+        dt += timedelta(minutes=mins_to_add)
+        dt = dt.replace(second=0, microsecond=0)
+        return dt
+
     def wait_till_next_bar(self, last_bar_timestamp: pd.DatetimeIndex) -> None:
         """Waits the number of seconds till the next bar is released.
 
@@ -732,8 +740,9 @@ class PyRobot():
         """
         curr_bar_time = datetime.now(tz=timezone.utc)
         last_bar_time = last_bar_timestamp.replace(tzinfo=timezone.utc)
-        next_bar_time = curr_bar_time + timedelta(seconds=300)       # changed to 5min = 300 seconds
-        next_bar_time = next_bar_time.replace(second=0)    # Just wait until the top of the next minute
+
+
+        next_bar_time = self.round_to_next_5_min_mark(curr_bar_time)
 
         last_bar_timestamp = int(last_bar_time.timestamp())
         next_bar_timestamp = int(next_bar_time.timestamp())
@@ -741,12 +750,12 @@ class PyRobot():
 
         time_to_wait_now = next_bar_timestamp - curr_bar_timestamp
 
-        # J. Jones - added 5 seconds as IBK isn't passing the most current candle if requesting right at
+        # J. Jones - added 6 seconds as IBK isn't passing the most current candle if requesting right at
         # the top of the minute.
         if time_to_wait_now < 0:
             time_to_wait_now = 0
         else:
-            time_to_wait_now += 20
+            time_to_wait_now += 6
 
         logmsg = "=" * 80
         self.logfiler.info(logmsg)
@@ -977,7 +986,13 @@ class PyRobot():
         # There is an option in the config.ini file to set the stop loss to a max percentage loss
         # If that is exceeded, that position will be sold.
         #
-        if self.Stop_Loss_Exceeded() or self.Gain_Limit_Exceeded() :
+        current_signal = self.signals[-1]
+        previous_signal = self.signals[-2]
+        # allow bot to reverse positions if signals change quickly
+        if (current_signal.startswith("Buy Calls") and previous_signal.startswith("Buy Puts")) or (current_signal.startswith("Buy Puts") and previous_signal.startswith("Buy Calls")):
+            signal = self.signals[-1]
+            self.logfiler.info("Reversing Positions!")
+        elif self.Stop_Loss_Exceeded() or self.Gain_Limit_Exceeded() :
             self.signals[-1] = "StopGainLoss"
             self.stock_frame.at[self.stock_frame.index[-1],'buy_condition'] = "StopGainLoss"
             signal = "StopGainLoss"
@@ -995,7 +1010,8 @@ class PyRobot():
         else:
             buy_n = buy_puts_count
 
-        self.logfiler.info(signal)
+
+        self.logfiler.info("Signal {sig}, Close {cls}, VWAP {vp}".format(sig=signal, cls=str(self.stock_frame.at[self.stock_frame.index[-1],'close']), vp=str(self.stock_frame.at[self.stock_frame.index[-1],'vwap'])))
 
         if (self.past_liquidation_time()):
             self.logfiler.info("Past Liquidation Deadline {closeitup}, Closing Open Option Positions".format(
@@ -1319,12 +1335,12 @@ class PyRobot():
                 if 'messageIds' in order_response[0].keys():
                     self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
                     order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                        reply_resp=True)
+                                                                        reply=None)
                     if 'messageIds' in order_response_question[0].keys():
                         self.logfiler.info(
                             "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
                         order_response_question2 = self.session.place_order_reply(reply_id=order_response_question[0]['id'],
-                                                                             reply_resp=True)
+                                                                             reply=None)
                     elif 'order_id' in order_response_question[0].keys():
                         self.logfiler.info("Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
                         return order_template, order_response_question
@@ -1439,13 +1455,13 @@ class PyRobot():
                     if 'messageIds' in order_response[0].keys():
                         self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
                         order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                                 reply_resp=True)
+                                                                                 reply=None)
                         if 'messageIds' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
                             order_response_question2 = self.session.place_order_reply(
                                 reply_id=order_response_question[0]['id'],
-                                reply_resp=True)
+                                reply=None)
                         elif 'order_id' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
@@ -1475,13 +1491,13 @@ class PyRobot():
                     if 'messageIds' in order_response[0].keys():
                         self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
                         order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                                 reply_resp=True)
+                                                                                 reply=None)
                         if 'messageIds' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
                             order_response_question2 = self.session.place_order_reply(
                                 reply_id=order_response_question[0]['id'],
-                                reply_resp=True)
+                                reply=None)
                         elif 'order_id' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
@@ -1600,71 +1616,71 @@ class PyRobot():
 
         # The boolean First_Initial_Test is set to True when the bot first starts
         # when the bot positions are assumed to be zero.
-        if not First_Initial_Test or ibk_pos_counter >= 0 :
-            # Accumulate position records for bot from the spreadsheet
-            # check quantities are equal to the bot_portfolio
-            position_tracker = {}
-            Bot_Positions_Exist = False
-            for frame_cnter in range(len(self.stock_frame)):
-                row_id = self.stock_frame.index[frame_cnter]
-                if (float(self.stock_frame.loc[row_id, 'order_id']) > float(0)):
-                    tick = self.stock_frame.loc[row_id, 'Ticker']
-                    quant = self.stock_frame.loc[row_id, 'quantity']
-                    # Check if orderid in our filled orders for the bot
-                    #
-                    if self.Bot_Filled_Order(self.stock_frame.loc[row_id, 'order_id']) :
-                        Bot_Positions_Exist = True
-                        if tick in position_tracker.keys():
-                            if self.stock_frame.loc[row_id, 'instruction'] == 'BUY':
-                                position_tracker[tick] += quant
-                            else:
-                                position_tracker[tick] -= quant
-                        else:
-                            if self.stock_frame.loc[row_id, 'instruction'] == 'BUY':
-                                position_template = {tick: quant}
-                            else:
-                                position_template = {tick: (quant * -1)}
-                            position_tracker.update(position_template)
-
-            if len(self.bot_portfolio.positions) > 0 :
-                for position_record in self.bot_portfolio.positions :
-                    # Make sure the bot synthetic position is equal to
-                    # the quantity expected from reconciling with the orders on the
-                    # spreadsheet
-                    pos_symbol = self.bot_portfolio.positions[position_record]['symbol']
-                    bot_quantity = self.bot_portfolio.positions[position_record]['quantity']
-                    if (self.bot_portfolio.positions[position_record]['put_call_flag']  == 'P') :
-                        if bot_quantity > 0 :
-                            put_counter += bot_quantity
-                    elif (self.bot_portfolio.positions[position_record]['put_call_flag']  == 'C') :
-                        if bot_quantity > 0 :
-                            call_counter += bot_quantity
-                    else :
-                        self.logfiler.info('Bot has non Put/Call positions for %s', str(pos_symbol))
-                Bot_Positions_Exist = True
-            else :
-                Bot_Positions_Exist = False
-            # Check to make sure that IBK doesn't think Bot positions are zero when
-            # bot does not.
-            if Bot_Positions_Exist :
-                for pos_record in self.bot_portfolio.positions.keys() :
-                    if not self.portfolio.in_portfolio(pos_record) :
-                        self.logfiler.info('Interactive Brokers has no position for %s', str(pos_record))
-                        self.logfiler.info('Bot position is %d', self.bot_portfolio.positions[position_record]['quantity'])
-#                        self.logfiler.info('Bot is exiting')
-#                        exit()
-
-                self.logfiler.info('Positions Within Bot *****')
-                pos_counter=0
-                for pos_record in self.bot_portfolio.positions.keys():
-                    pos_counter += 1
-                    self.logfiler.info(
-                    '    Symbol {sym} quantity {qu}'.format(sym=pos_record, qu=self.bot_portfolio.positions[pos_record]['quantity']))
-                if pos_counter == 0 :
-                    self.logfiler.info('    No Bot Positions')
-            else:
-                self.logfiler.info('Positions Within Bot *****')
-                self.logfiler.info('    No Bot Positions')
+#         if not First_Initial_Test or ibk_pos_counter >= 0 :
+#             # Accumulate position records for bot from the spreadsheet
+#             # check quantities are equal to the bot_portfolio
+#             position_tracker = {}
+#             Bot_Positions_Exist = False
+#             for frame_cnter in range(len(self.stock_frame)):
+#                 row_id = self.stock_frame.index[frame_cnter]
+#                 if (float(self.stock_frame.loc[row_id, 'order_id']) > float(0)):
+#                     tick = self.stock_frame.loc[row_id, 'Ticker']
+#                     quant = self.stock_frame.loc[row_id, 'quantity']
+#                     # Check if orderid in our filled orders for the bot
+#                     #
+#                     if self.Bot_Filled_Order(self.stock_frame.loc[row_id, 'order_id']) :
+#                         Bot_Positions_Exist = True
+#                         if tick in position_tracker.keys():
+#                             if self.stock_frame.loc[row_id, 'instruction'] == 'BUY':
+#                                 position_tracker[tick] += quant
+#                             else:
+#                                 position_tracker[tick] -= quant
+#                         else:
+#                             if self.stock_frame.loc[row_id, 'instruction'] == 'BUY':
+#                                 position_template = {tick: quant}
+#                             else:
+#                                 position_template = {tick: (quant * -1)}
+#                             position_tracker.update(position_template)
+#
+#             if len(self.bot_portfolio.positions) > 0 :
+#                 for position_record in self.bot_portfolio.positions :
+#                     # Make sure the bot synthetic position is equal to
+#                     # the quantity expected from reconciling with the orders on the
+#                     # spreadsheet
+#                     pos_symbol = self.bot_portfolio.positions[position_record]['symbol']
+#                     bot_quantity = self.bot_portfolio.positions[position_record]['quantity']
+#                     if (self.bot_portfolio.positions[position_record]['put_call_flag']  == 'P') :
+#                         if bot_quantity > 0 :
+#                             put_counter += bot_quantity
+#                     elif (self.bot_portfolio.positions[position_record]['put_call_flag']  == 'C') :
+#                         if bot_quantity > 0 :
+#                             call_counter += bot_quantity
+#                     else :
+#                         self.logfiler.info('Bot has non Put/Call positions for %s', str(pos_symbol))
+#                 Bot_Positions_Exist = True
+#             else :
+#                 Bot_Positions_Exist = False
+#             # Check to make sure that IBK doesn't think Bot positions are zero when
+#             # bot does not.
+#             if Bot_Positions_Exist :
+#                 for pos_record in self.bot_portfolio.positions.keys() :
+#                     if not self.portfolio.in_portfolio(pos_record) :
+#                         self.logfiler.info('Interactive Brokers has no position for %s', str(pos_record))
+#                         self.logfiler.info('Bot position is %d', self.bot_portfolio.positions[position_record]['quantity'])
+# #                        self.logfiler.info('Bot is exiting')
+# #                        exit()
+#
+#                 self.logfiler.info('Positions Within Bot *****')
+#                 pos_counter=0
+#                 for pos_record in self.bot_portfolio.positions.keys():
+#                     pos_counter += 1
+#                     self.logfiler.info(
+#                     '    Symbol {sym} quantity {qu}'.format(sym=pos_record, qu=self.bot_portfolio.positions[pos_record]['quantity']))
+#                 if pos_counter == 0 :
+#                     self.logfiler.info('    No Bot Positions')
+#             else:
+#                 self.logfiler.info('Positions Within Bot *****')
+#                 self.logfiler.info('    No Bot Positions')
 
         call_counter = 0
         put_counter = 0
@@ -1672,7 +1688,7 @@ class PyRobot():
         #if ibk_pos_counter != pos_counter :
             #self.logfiler.info('Positions Within Bot Do Not Match IBKR Positions *****')
         if (True) :
-            self.logfiler.info('Overriding Positions Within Bot To Match IBKR Positions *****')
+            # self.logfiler.info('Overriding Positions Within Bot To Match IBKR Positions *****')
             self.bot_portfolio.positions = {}
             for position_record in self.portfolio.positions:
                 position_symbol = self.portfolio.positions[position_record]['symbol']
@@ -1687,13 +1703,21 @@ class PyRobot():
                     self.logfiler.info(
                     "Contract {pos_desc} has no Put/Call indicator while copying positions".format(pos_desc=position_desc))
 
+                # There is some delay in the market prices in the portfolio positions.  So, updating the market price
+                # while copying to the bot.
+                quote_fields = [55, 7295, 86, 70, 71, 84, 31, 87]
+                quote_snapshot = self.session.market_data([str(position_symbol)], since=None, fields=quote_fields)
+                quote_record = quote_snapshot[0]
+                MktData_Value = float(quote_record['31'])
+                self.logfiler.info("Position Market Price Positions {Pos_Mkt}, versus MktData {MD_Mkt}".format(Pos_Mkt=str(Mkt_Price_Position),MD_Mkt=quote_record['31']))
+
                 new_position = self.bot_portfolio.add_position(symbol=position_symbol,
                                                            asset_type=asset_type,
                                                            quantity=quantity,
                                                            purchase_price=average_price,
                                                            description=position_desc,
                                                            put_call_flag=PutCall,
-                                                            avg_mkt_price = Mkt_Price_Position)
+                                                            avg_mkt_price = MktData_Value)
             over_ride_flag = 1
             if len(self.bot_portfolio.positions) > 0 :
                 for position_record in self.bot_portfolio.positions :

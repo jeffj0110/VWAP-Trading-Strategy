@@ -1,10 +1,11 @@
+import os
+
 import numpy as np
 import pandas as pd
 import operator
 import math
 import re
 import json
-
 
 from typing import Any
 from typing import Dict
@@ -613,10 +614,25 @@ class Indicators():
 
         # Acquiring all the strikes and options is very time consuming, so only doing at the beginning of the session
         if len(self.option_data) == 0 :
-            option_chain = IBSession.get_options_chain(conid=conid, option_chain_params=params)
+            self.logfiler.info("Starting To Acquire Option Chain Data")
+            # Check if we saved a file from a previous run on this calendar day.
+            json_path = './config' + '/'
+            est_tz = pytz.timezone('US/Eastern')
+            filetimestamp = datetime.now(est_tz).strftime("%Y_%m_%d_")
+            filename = "{}_OptionChains_{}".format(symbol, filetimestamp)
+            full_path = json_path + r"/" + filename + ".json"
+            if os.path.isfile(full_path):
+                self.logfiler.info("Loading Option Chain Data from previously saved file")
+                option_chain = json.load(open(full_path, 'r'))
+            else:
+                option_chain = IBSession.get_options_chain(conid=conid, option_chain_params=params)
+
             options_list_calls = option_chain[conid]['call_options']
             options_list_puts = option_chain[conid]['put_options']
             self.option_data.append(option_chain)
+            self.logfiler.info("Finished Acquiring Option Chain Data")
+            # Since this takes so long to retrieve, the dictionary is saved as a file which can be read if a restart is required on the same calendar day.
+            json.dump(option_chain, open(full_path, 'w'))
         else :
             option_chain = self.option_data[0]
             options_list_calls = option_chain[conid]['call_options']
@@ -800,7 +816,7 @@ class Indicators():
         timestampObj_est = timestampObj_local.astimezone(est_tz)
         timestampstring = timestampObj_est.strftime("%Y-%m-%d %H:%M:%S")
         #utc_timestampstring = timestampObj_utc.strftime("%Y-%m-%d %H:%M:%S")
-        Call_Description = call_df.loc[max_volume_calls_index,'symbol'] + \
+        Call_Description = str(max_volume_calls_index) + ' ' + call_df.loc[max_volume_calls_index,'symbol'] + \
                                 str(call_df.loc[max_volume_calls_index, 'maturityDate']) + \
                                 str(call_df.loc[max_volume_calls_index, 'strike']) + \
                                 call_df.loc[max_volume_calls_index, 'right'] + " LastPrice=" + \
@@ -851,7 +867,7 @@ class Indicators():
         else :
             self.puts_options.append(str(int(max_volume_puts_index)))
 
-        Put_Description = put_df.loc[max_volume_puts_index, 'symbol'] + \
+        Put_Description = str(max_volume_puts_index) + ' ' + put_df.loc[max_volume_puts_index, 'symbol'] + \
                           str(put_df.loc[max_volume_puts_index, 'maturityDate']) + \
                           str(put_df.loc[max_volume_puts_index, 'strike']) + \
                           put_df.loc[max_volume_puts_index, 'right'] + " LastPrice=" + \

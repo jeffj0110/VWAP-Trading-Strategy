@@ -45,8 +45,8 @@ def _create_session() -> IBClient:
 
         # Create a new instance of the client
         ib_client = IBClient(
-            username="jeffjo763",
-            account="DU4876095",
+            username="jeffjones4",
+            account="U7949765",
             is_server_running=True
 #            client_id=self.client_id,
 #            account_number=self.trading_account,
@@ -59,7 +59,7 @@ def _create_session() -> IBClient:
 
         return ib_client
 
-def sell_stock(logfiler, session, symbol, option_symbol, instruction: str):
+def sell_stock(logfiler, session, symbol, option_symbol, instruction: str, quant : int):
     """
     Portfolio format
         {
@@ -72,11 +72,14 @@ def sell_stock(logfiler, session, symbol, option_symbol, instruction: str):
     """
 
     bidPrice = 0.0
-    account = "DU4876095"
+    account = "U7949765"
 
 
     order_response = {}
-    default_quantity = 1
+    if quant == 0 :
+        default_quantity = 1
+    else :
+        default_quantity = quant
 
     orderType = 'MKT'
     if orderType == 'MKT':
@@ -86,7 +89,7 @@ def sell_stock(logfiler, session, symbol, option_symbol, instruction: str):
             'ticker' : symbol,
             'secType': str(option_symbol) + ':' + 'OPT',
             'orderType': orderType,
-            'quantity': 1,
+            'quantity': default_quantity,
             'side': 'SELL',
             'tif': 'DAY'
             }
@@ -153,7 +156,7 @@ def main(argv):
        elif opt in ("-s", "-S"):
           underlying_symbol = arg
        elif opt in ('-q', '-Q') :
-          defBuyQuant = int(arg)
+          defQuant = int(arg)
        elif opt in ('-o', '-O') :
            option_symbol_number = int(arg)
 
@@ -178,17 +181,17 @@ def main(argv):
 
     IBC_Session = _create_session()
 
-    positions_response = IBC_Session.portfolio_account_positions(account_id="DU4876095", page_id=0)
+    positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
 
     logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
 
 
-    order_template, order_response = sell_stock(logger, IBC_Session, underlying_symbol, option_symbol_number, "SELL")
+    order_template, order_response = sell_stock(logger, IBC_Session, underlying_symbol, option_symbol_number, "SELL", defQuant)
 
 
-    logger.info("Order response {ord}".format(ord=json.dumps(order_response['orders'], indent=4)))
+    logger.info("Order response {ord}".format(ord=json.dumps(order_response, indent=4)))
 
-    positions_response = IBC_Session.portfolio_account_positions(account_id="DU4876095", page_id=0)
+    positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
 
     logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
 
