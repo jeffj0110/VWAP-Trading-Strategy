@@ -81,6 +81,7 @@ class PyRobot():
         self.stop_loss_perc = StopLoss
         self.gain_cap_perc = GainCap
         self.hit_stop_loss = False
+        self.TradeOptions = True
         self.logfiler = lgfile
         self.session.logger_handle = self.logfiler
 
@@ -925,7 +926,7 @@ class PyRobot():
 
 
     def find_bot_owned_option(self, put_call_flag) :
-        owned_option = 'Could not find option to sell'
+        owned_option = 'Could not find position to sell'
         for position in self.bot_portfolio.positions :
             if put_call_flag == self.bot_portfolio.positions[position]['put_call_flag']  :
                 if self.bot_portfolio.positions[position]['quantity'] > 0 :
@@ -936,8 +937,10 @@ class PyRobot():
             full_word = 'Call'
         elif put_call_flag == 'P' :
             full_word = 'Put'
-        else :
+        elif self.TradeOptions :
             full_word = 'Unknown Option'
+        else :
+            full_word = 'Stock'
 
         self.logfiler.info("Could not find a {putcall} to sell in Bot positions".format(putcall=full_word))
         return owned_option
@@ -1001,8 +1004,13 @@ class PyRobot():
             signal = self.signals[-1]
 
         # last element in the calls_option column
-        call_symbol = self.call_options[-1]
-        put_symbol = self.put_options[-1]
+        if self.TradeOptions :
+            call_symbol = self.call_options[-1]
+            put_symbol = self.put_options[-1]
+        else :
+            call_symbol = self.conid # Just buy or sell the stock
+            put_symbol = self.conid # Just buy or sell the stock
+
         if buy_calls_count == 0 and buy_puts_count == 0:
             buy_n = 0
         elif buy_puts_count == 0:
@@ -1011,7 +1019,7 @@ class PyRobot():
             buy_n = buy_puts_count
 
 
-        self.logfiler.info("Signal {sig}, Close {cls}, VWAP {vp}".format(sig=signal, cls=str(self.stock_frame.at[self.stock_frame.index[-1],'close']), vp=str(self.stock_frame.at[self.stock_frame.index[-1],'vwap'])))
+        self.logfiler.info("Signal {sig}, Close {cls}, VWAP {vp} Vol Chg % {vchg}".format(sig=signal, cls=str(self.stock_frame.at[self.stock_frame.index[-1],'close']), vp=str(self.stock_frame.at[self.stock_frame.index[-1],'vwap']), vchg=str(self.stock_frame.at[self.stock_frame.index[-1],'per_chg_volume'])))
 
         if (self.past_liquidation_time()):
             self.logfiler.info("Past Liquidation Deadline {closeitup}, Closing Open Option Positions".format(
@@ -1024,21 +1032,29 @@ class PyRobot():
         # J. Jones : Don't submit any trades outside of hours defined in config.ini
         # We do need to sell though, if past liquidation time or between trading periods
         if self.within_trading_hours() or self.past_liquidation_time() :
-            if signal.startswith("Buy Calls"):
+            if signal.startswith("Buy Calls")  :
                 # buy condition met and no position held in Interactive Brokers
                 # For VWAP Strategy, changed to buy when one buy signal occurrs
                 # 1/24/2022 added the condition to avoid buying calls when holding puts to avoid going vertical unintentially
                 instruction = "BUY"
                 if buy_n >= 1 and calls_quantity < 1 :
-                    # if we don't own any of the current option symbol, otherwise, don't buy
-                    if not self.bot_portfolio.in_portfolio(call_symbol):
-                        self.logfiler.info("Buying CALL option {call_sym} for {sym} at time: {tm}".format(call_sym=call_symbol, sym=symbol, tm=datetime.now().strftime("%H:%M:%S")))
-                        # BUY THE CALLS
-                        order, order_response = self.buy_stock(symbol=symbol,
+                    # if we don't own any of the current symbol, otherwise, don't buy
+                    if (not self.bot_portfolio.in_portfolio(call_symbol)) :
+                        if self.TradeOptions :
+                            self.logfiler.info("Buying CALL option {call_sym} for {sym} at time: {tm}".format(call_sym=call_symbol, sym=symbol, tm=datetime.now().strftime("%H:%M:%S")))
+                        else :
+                            self.logfiler.info("Buying {id} {sym} at time: {tm}".format(id=self.conid, sym=symbol, tm=datetime.now().strftime("%H:%M:%S")))
+
+                        # BUY
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.buy_stock(symbol=symbol,
                                                                option_symbol_str=call_symbol,
                                                                instruction=instruction)
                     elif self.bot_portfolio.in_portfolio(call_symbol):
-                        self.logfiler.info("Already have option {csym}.".format(csym=call_symbol))
+                        if self.TradeOptions :
+                            self.logfiler.info("Already have option {csym}.".format(csym=call_symbol))
+                        if not self.TradeOptions :
+                            self.logfiler.info("Already have Stock Position {csym}.".format(csym=call_symbol))
                     else:
                         self.logfiler.info("Something went wrong.")
 
@@ -1048,74 +1064,110 @@ class PyRobot():
 
             # Sell CALLS logic
             elif signal.startswith("Buy Puts") or signal.startswith("StopGainLoss"):
-                self.logfiler.info("Sell CALLS if we have them.")
-                # sell condition met and we have CALLS in the portfolio, abs value between 9-50 ma is decreasing
-                call_symbol_owned = self.find_bot_owned_option('C')
+                self.logfiler.info("Sell CALLS (or stock) if we have a position.")
+                # sell condition met and we have CALLS in the portfolio
+                if self.TradeOptions :
+                    call_symbol_owned = self.find_bot_owned_option('C')
+                else :
+                    call_symbol_owned = self.find_bot_owned_option('')
+
                 if (calls_quantity >= 1) :
-                    # J. Jones - if we are pasted the liquidation time, we sell regardless of the sell conditions
+                    # J. Jones - if we are past the liquidation time, we sell regardless of the sell conditions
                     instruction = "SELL"
                     if (self.past_liquidation_time()) :
                          # if we own a call, sell it, otherwise, don't sell
-                        call_symbol_owned = self.find_bot_owned_option('C')
+                        if self.TradeOptions :
+                             call_symbol_owned = self.find_bot_owned_option('C')
+                        else :
+                             call_symbol_owned = self.find_bot_owned_option('')
 
                         if call_symbol_owned  == '' :
-                            self.logfiler.info("Do not own any Calls")
-                            purchprice = 999.0
+                            if self.TradeOptions :
+                                self.logfiler.info("Do not own any Calls")
+                                purchprice = 999.0
+                            else :
+                                self.logfiler.info("Do not own any Stock {sym}".format(sym=self.conid))
                         else:
                             purchprice = float(self.bot_portfolio.positions[call_symbol_owned]['purchase_price'])
 
 
                     if (self.bot_portfolio.in_portfolio(call_symbol_owned)) :
                         purchprice = float(self.bot_portfolio.positions[call_symbol_owned]['purchase_price'])
-                        self.logfiler.info("Selling CALL option {c_sym}".format(c_sym=call_symbol_owned))
-                        # SELL THE CALLS
-                        order, order_response = self.sell_stock(symbol=symbol,
-                                                            option_symbol=call_symbol_owned,
-                                                            instruction=instruction,
-                                                                purchase_price = purchprice)
+                        if self.TradeOptions :
+                            self.logfiler.info("Selling CALL option {c_sym}".format(c_sym=call_symbol_owned))
+
+                        else :
+                            self.logfiler.info("Selling stock {c_sym}".format(c_sym=call_symbol_owned))
+
+                        # SELL THE Position
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
+                                                        option_symbol=call_symbol_owned,
+                                                        instruction=instruction,
+                                                        purchase_price = purchprice)
+
                     else:
-                        self.logfiler.info("Do not have option %s.",call_symbol_owned)
-                        self.logfiler.info("Calls held, but did not meet Call selling conditions")
+                        if self.TradeOptions :
+                            self.logfiler.info("Do not have option %s.",call_symbol_owned)
+                            self.logfiler.info("Calls held, but did not meet Call selling conditions")
+                        else :
+                            self.logfiler.info("Do not have Stock %s.", call_symbol_owned)
 
                     buy_and_sell_count = 0
 
                 else :
-                    self.logfiler.info("Do not own any Calls")
+                    if self.TradeOptions :
+                        self.logfiler.info("Do not own any Calls")
+                    else :
+                        self.logfiler.info("Do not own any Stock {sym}".format(sym=self.conid))
+
 
             # Buys and sells PUTS options ===============================================================
             # Buy PUTS logic
             if signal.startswith("Buy Puts") :
-
+                # Buy Puts is the equivalent of not being long.  So, if not trading options, we would sell stock position
                 # buy puts condition met and no position held
                 # J. Jones - changed to buy position when buy_n 1 or greater for vwap strategy
                 if buy_n >= 1 and puts_quantity < 1 :
                 #if buy_n >= 1 and puts_quantity < 1 and calls_quantity < 1:
                     instruction = "BUY"
-
                     # if we don't own any of the current option symbol, otherwise, don't buy
-                    if not self.bot_portfolio.in_portfolio(put_symbol):
+                    if not self.bot_portfolio.in_portfolio(put_symbol) and self.TradeOptions :
                         self.logfiler.info(
                             "Buying PUT option {p_sym} for {sm} at time: {tm}".format(p_sym=put_symbol, sm=symbol, tm=datetime.now().time()))
                         # BUY THE PUTS
-                        # TODO UNCOMMENT TO ACTUALLY BUY
-                        order, order_response = self.buy_stock(symbol=symbol,
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.buy_stock(symbol=symbol,
                                                                option_symbol_str=put_symbol,
                                                                instruction=instruction)
-                    elif self.bot_portfolio.in_portfolio(put_symbol):
+                    elif self.bot_portfolio.in_portfolio(put_symbol) and self.TradeOptions :
                         self.logfiler.info("Already have option %s", put_symbol)
-                        # TODO Implement a function to check for other options for the same underlying that may be sold
-                    else:
-                        self.logfiler.info("Something went wrong.")
+                    elif not self.bot_portfolio.in_portfolio(put_symbol) :
+                        self.logfiler.info("No stock to sell")
+                    elif self.bot_portfolio.in_portfolio(put_symbol) :
+                        self.logfiler.info(
+                        "Selling Stock {id} {sm} at time: {tm}".format(id=put_symbol, sm=symbol,
+                                                                                  tm=datetime.now().time()))
+                        instruction = "SELL"
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
+                                                               option_symbol_str=put_symbol,
+                                                               instruction=instruction, purchase_price=float(999.0) )
+                else:
+                    self.logfiler.info("Something went wrong.")
 
                     buy_and_sell_count = 1
                     buy_puts_count += 1
                     self.logfiler.info("Buy and sell count: %d", buy_and_sell_count)
 
             elif signal.startswith("Buy Calls") or signal.startswith("StopGainLoss"):
-                self.logfiler.info("Sell PUTS if we have them.")
+                if self.TradeOptions :
+                    self.logfiler.info("Sell PUTS if we have them.")
+                else :
+                    self.logfiler.info("Sell Stock Due To Gain/Loss Limit")
                 # Potential optimization to Sell Logic : add 'or' statement to sell puts if 3 MA Slope turns positive
                 # Sell PUTS logic
-                if (puts_quantity >= 1) :
+                if (puts_quantity >= 1) and self.TradeOptions :
                     put_symbol_owned = self.find_bot_owned_option('P')
                     instruction = "SELL"
                     purchprice = 0.0
@@ -1131,7 +1183,8 @@ class PyRobot():
                         purchprice = float(self.bot_portfolio.positions[put_symbol_owned]['purchase_price'])
                         self.logfiler.info("Selling PUT option {p_sym}".format(p_sym=put_symbol_owned))
                         # SELL THE CALLS
-                        order, order_response = self.sell_stock(symbol=symbol,
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
                                                                 option_symbol=put_symbol_owned,
                                                                 instruction=instruction,
                                                                 purchase_price = purchprice)
@@ -1141,6 +1194,27 @@ class PyRobot():
 
                     stock_data["buy_count"] = -1
                     buy_and_sell_count = 0
+                elif not self.TradeOptions and signal.startswith("StopGainLoss"):
+                    purchprice = 0.0
+                    put_symbol_owned = self.find_bot_owned_option('')
+                    if (self.past_liquidation_time()) :
+                        # if we own stock, sell it
+                        if put_symbol_owned == '' :
+                            self.logfiler.info("Do not own any Stock")
+                            purchprice = 999.0
+                        else:
+                            purchprice = float(self.bot_portfolio.positions[put_symbol_owned]['purchase_price'])
+
+                    if (self.bot_portfolio.in_portfolio(put_symbol_owned)) and purchprice != 999.0 :
+                        purchprice = float(self.bot_portfolio.positions[put_symbol_owned]['purchase_price'])
+                        self.logfiler.info("Selling Stock {p_sym}".format(p_sym=put_symbol_owned))
+                        # SELL THE CALLS
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
+                                                                option_symbol=put_symbol_owned,
+                                                                instruction=instruction,
+                                                                purchase_price = purchprice)
+
                 else:
                     self.logfiler.info("Do not own any Puts")
 
@@ -1148,38 +1222,57 @@ class PyRobot():
             if not self.within_trading_hours() :
                 self.logfiler.info("Outside of allowable trading times {startt} to {endt} EST".format(startt=self.earliest_order.strftime("%H:%M:%S"), endt=self.latest_order.strftime("%H:%M:%S")))
                 self.logfiler.info("Or secondary trading times {startt} to {endt} EST".format(startt=self.second_earliest_order.strftime("%H:%M:%S"), endt=self.second_latest_order.strftime("%H:%M:%S")))
-                self.logfiler.info("Sell CALLS if we have them.")
+                if self.TradeOptions :
+                    self.logfiler.info("Sell CALLS if we have them.")
+                else :
+                    self.logfiler.info("Sell stock if we hold any")
+
                 if (calls_quantity >= 1):
                     # J. Jones - if we are not within trading hours, we sell regardless of the sell conditions
                     instruction = "SELL"
                     # if we own a call, sell it, otherwise, don't sell
-                    call_symbol_owned = self.find_bot_owned_option('C')
+                    if self.TradeOptions :
+                        call_symbol_owned = self.find_bot_owned_option('C')
+                    else :
+                        call_symbol_owned = self.find_bot_owned_option('')
                     purchprice = 0.0
                     if call_symbol_owned == '':
-                        self.logfiler.info("Do not own any Calls")
+                        if self.TradeOptions :
+                            self.logfiler.info("Do not own any Calls")
+                        else :
+                            self.logfiler.info("Do not own any Stock")
                         purchprice = 999.0
                     else:
                         purchprice = float(self.bot_portfolio.positions[call_symbol_owned]['purchase_price'])
 
                     if (self.bot_portfolio.in_portfolio(call_symbol_owned)) and purchprice != 999.0 :
                         purchprice = float(self.bot_portfolio.positions[call_symbol_owned]['purchase_price'])
-                        self.logfiler.info("Selling CALL option {c_sym}".format(c_sym=call_symbol_owned))
+                        if self.TradeOptions :
+                            self.logfiler.info("Selling CALL option {c_sym}".format(c_sym=call_symbol_owned))
+                        else :
+                            self.logfiler.info("Selling Stock {c_sym}".format(c_sym=call_symbol_owned))
+
                         # SELL THE CALLS
-                        order, order_response = self.sell_stock(symbol=symbol,
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
                                                                 option_symbol=call_symbol_owned,
                                                                 instruction=instruction,
                                                                 purchase_price=purchprice)
                 else :
                     self.logfiler.info("Do not own any Calls")
 
-                self.logfiler.info("Sell PUTS if we have them.")
-                # Sell PUTS logic
+                if self.TradeOptions :
+                    self.logfiler.info("Sell PUTS if we have them.")
+                # Sell PUTS logic.  We should never have a puts_quantity over zero if we are trading stock only
                 if (puts_quantity >= 1) :
-                    put_symbol_owned = self.find_bot_owned_option('P')
+                    if self.TradeOptions :
+                        put_symbol_owned = self.find_bot_owned_option('P')
+                    else:
+                        put_symbol_owned = self.find_bot_owned_option('')
                     instruction = "SELL"
                     purchprice = 0.0
                     # if we own a put, sell it, otherwise, don't sell
-                    if put_symbol_owned  == '' :
+                    if put_symbol_owned  == '' and self.TradeOptions:
                         self.logfiler.info("Do not own any Puts")
                         purchprice = 999.0
                     else:
@@ -1189,7 +1282,8 @@ class PyRobot():
                         purchprice = float(self.bot_portfolio.positions[put_symbol_owned]['purchase_price'])
                         self.logfiler.info("Selling PUT option {p_sym}".format(p_sym=put_symbol_owned))
                         # SELL THE CALLS
-                        order, order_response = self.sell_stock(symbol=symbol,
+                        if self.def_buy_quantity != 0 :
+                            order, order_response = self.sell_stock(symbol=symbol,
                                                                 option_symbol=put_symbol_owned,
                                                                 instruction=instruction,
                                                                 purchase_price = purchprice)
@@ -1273,16 +1367,28 @@ class PyRobot():
         orderType = self.default_mkt_limit_order_type
 
         if orderType == 'MKT':
-            order_template = {
-                'acctid': self.account_id,
-                'conid': option_symbol,
-                'ticker': symbol,
-                'secType': str(option_symbol) + ':' + 'OPT',
-                'orderType': orderType,
-                'quantity': default_quantity,
-                'side': 'BUY',
-                'tif': 'DAY'
-            }
+            if self.TradeOptions :
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': option_symbol,
+                    'ticker': symbol,
+                    'secType': str(option_symbol) + ':' + 'OPT',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'BUY',
+                    'tif': 'DAY'
+                }
+            else :
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': int(self.conid),
+                    'ticker': symbol,
+                    'secType': 'STK',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'BUY',
+                    'tif': 'DAY'
+                }
         elif orderType == 'LMT' :
             # Retrieve latest price for option to set limit to
             quote_fields = [55, 7295, 86, 70, 71, 84, 31, 87]
@@ -1290,29 +1396,44 @@ class PyRobot():
             quote_record=quote_snapshot[0]
             if '86' in quote_record.keys():
                 ask_price = float(quote_record['86'])
+                bid_price = float(quote_record['84'])
             else: # Second attempt always works for some reason
                 quote_snapshot = self.session.market_data([str(option_symbol)], since=None, fields=quote_fields)
                 quote_record = quote_snapshot[0]
                 if '86' in quote_record.keys():
                     ask_price = float(quote_record['86'])
+                    bid_price = float(quote_record['84'])
                 else:
                     self.logfiler.info(
                         "Error trying obtain quote for {sy} ".format(sy=option_symbol))
                     return order_template, order_response
+            LimitPrice = (bid_price + ask_price) / 2.0
+            LimitPrice = round(LimitPrice,2)
 
-            LimitPrice = round(ask_price,2)
-
-            order_template = {
+            if self.TradeOptions :
+                order_template = {
                 'acctid': self.account_id,
                 'conid': int(option_symbol),
                 'ticker': symbol,
                 'secType': str(option_symbol) + ':' + 'OPT',
                 'orderType': orderType,
-                'quantity': 1,
+                'quantity': default_quantity,
                 'side': 'BUY',
                 'price': LimitPrice,
                 'tif': 'DAY'
-            }
+                }
+            else :
+                order_template = {
+                'acctid': self.account_id,
+                'conid': int(option_symbol),
+                'ticker': symbol,
+                'secType': 'STK',
+                'orderType': orderType,
+                'quantity': default_quantity,
+                'side': 'BUY',
+                'price': LimitPrice,
+                'tif': 'DAY'
+                }
         else :
             self.logfiler.info("Invalid Order Type %s", orderType)
             order_template = {}
@@ -1334,13 +1455,11 @@ class PyRobot():
             else:  # We have messages to respond to, we by default just respond 'true' to all of them
                 if 'messageIds' in order_response[0].keys():
                     self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
-                    order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                        reply=None)
+                    order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'])
                     if 'messageIds' in order_response_question[0].keys():
                         self.logfiler.info(
                             "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
-                        order_response_question2 = self.session.place_order_reply(reply_id=order_response_question[0]['id'],
-                                                                             reply=None)
+                        order_response_question2 = self.session.place_order_reply(reply_id=order_response_question[0]['id'])
                     elif 'order_id' in order_response_question[0].keys():
                         self.logfiler.info("Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
                         return order_template, order_response_question
@@ -1375,27 +1494,48 @@ class PyRobot():
                 "Default Sell Quantity Too High {dbq}, buy quant set to 1".format(dbq=self.def_buy_quantity))
 
         # Check if we have position in our portfolio
-        if self.bot_portfolio.in_portfolio(option_symbol):
-            quantity = self.bot_portfolio.positions[option_symbol]['quantity']
-        else:
-            self.logfiler.info("Do not have any {sm}".format(sm=option_symbol))
-            return
+        quantity = 0
+        if self.TradeOptions :
+            if self.bot_portfolio.in_portfolio(option_symbol):
+                quantity = self.bot_portfolio.positions[option_symbol]['quantity']
+            else:
+                self.logfiler.info("Do not have any {sm}".format(sm=option_symbol))
+                return
+        else :
+            if self.bot_portfolio.in_portfolio(option_symbol):
+                quantity = self.bot_portfolio.positions[option_symbol]['quantity']
+            else:
+                self.logfiler.info("Do not have any {sm}".format(sm=option_symbol))
+                return
 
         if (quantity != default_quantity) and (quantity != 0) :
             default_quantity = quantity
 
-        orderType = self.default_mkt_limit_order_type
+        #orderType = self.default_mkt_limit_order_type
+        orderType = 'MKT'      #changed to avoid filling orders on the sell side during fast moving market
         if orderType == 'MKT':
-            order_template = {
-                'acctid': self.account_id,
-                'conid': int(option_symbol),
-                'ticker': symbol,
-                'secType': str(option_symbol) + ':' + 'OPT',
-                'orderType': orderType,
-                'quantity': default_quantity,
-                'side': 'SELL',
-                'tif': 'DAY'
-            }
+            if self.TradeOptions :
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': int(option_symbol),
+                    'ticker': symbol,
+                    'secType': str(option_symbol) + ':' + 'OPT',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'SELL',
+                    'tif': 'DAY'
+                }
+            else :
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': int(option_symbol),
+                    'ticker': symbol,
+                    'secType': 'STK',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'SELL',
+                    'tif': 'DAY'
+                }
         elif orderType == 'LMT' :
             # Retrieve latest bid price for option to set limit to
             quote_fields = [55, 7295, 86, 70, 71, 84, 31, 87]
@@ -1403,30 +1543,46 @@ class PyRobot():
             quote_record=quote_snapshot[0]
             if '84' in quote_record.keys():
                 bid_price = float(quote_record['84'])
+                ask_price = float(quote_record['86'])
             else: # Second attempt always works for some reason
                 quote_snapshot = self.session.market_data([str(option_symbol)], since=None, fields=quote_fields)
                 quote_record = quote_snapshot[0]
                 if '84' in quote_record.keys():
                     bid_price = float(quote_record['84'])
+                    ask_price = float(quote_record['86'])
                 else:
                     self.logfiler.info(
                         "Error trying obtain quote for {sy} ".format(sy=option_symbol))
                     order_template = {}
                     return order_template, order_response
 
-            LimitPrice = round(bid_price,2)
+            LimitPrice = (bid_price + ask_price) / 2
+            LimitPrice = round(LimitPrice,2)
 
-            order_template = {
-                'acctid': self.account_id,
-                'conid': int(option_symbol),
-                'ticker': symbol,
-                'secType': str(option_symbol) + ':' + 'OPT',
-                'orderType': orderType,
-                'quantity': default_quantity,
-                'side': 'SELL',
-                'price': LimitPrice,
-                'tif': 'DAY'
-            }
+            if self.TradeOptions :
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': int(option_symbol),
+                    'ticker': symbol,
+                    'secType': str(option_symbol) + ':' + 'OPT',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'SELL',
+                    'price': LimitPrice,
+                    'tif': 'DAY'
+                }
+            else:
+                order_template = {
+                    'acctid': self.account_id,
+                    'conid': int(option_symbol),
+                    'ticker': symbol,
+                    'secType': 'STK',
+                    'orderType': orderType,
+                    'quantity': default_quantity,
+                    'side': 'SELL',
+                    'price': LimitPrice,
+                    'tif': 'DAY'
+                }
 
         else :
             self.logfiler.info("Invalid Order Type %s", orderType)
@@ -1454,14 +1610,11 @@ class PyRobot():
                 else:  # We have messages to respond to, we by default just respond 'true' to all of them
                     if 'messageIds' in order_response[0].keys():
                         self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
-                        order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                                 reply=None)
+                        order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'])
                         if 'messageIds' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
-                            order_response_question2 = self.session.place_order_reply(
-                                reply_id=order_response_question[0]['id'],
-                                reply=None)
+                            order_response_question2 = self.session.place_order_reply(reply_id=order_response_question[0]['id'])
                         elif 'order_id' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
@@ -1490,14 +1643,11 @@ class PyRobot():
                 else:  # We have messages to respond to, we by default just respond 'true' to all of them
                     if 'messageIds' in order_response[0].keys():
                         self.logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
-                        order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'],
-                                                                                 reply=None)
+                        order_response_question = self.session.place_order_reply(reply_id=order_response[0]['id'])
                         if 'messageIds' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Message received on order : {msg}".format(msg=order_response_question[0]['message']))
-                            order_response_question2 = self.session.place_order_reply(
-                                reply_id=order_response_question[0]['id'],
-                                reply=None)
+                            order_response_question2 = self.session.place_order_reply(reply_id=order_response_question[0]['id'])
                         elif 'order_id' in order_response_question[0].keys():
                             self.logfiler.info(
                                 "Order Submitted, OrderID = {id}".format(id=order_response_question[0]['order_id']))
@@ -1545,12 +1695,15 @@ class PyRobot():
                     average_price = position['avgPrice']
                     position_desc = position['contractDesc']
                     asset_type = position['assetClass']
-                    PutCall = position['putOrCall']
+                    if self.TradeOptions :
+                        PutCall = position['putOrCall']
+                    else :
+                        PutCall = ''
                     avg_mkt_price = float(position['mktPrice'])
 
                     if position_desc.startswith(underlying_symbol):
                         if quantity != 0 :
-                            if PutCall not in ('P', 'C'):
+                            if self.TradeOptions and PutCall not in ('P', 'C'):
                                 # The PutCall indicator is not populated in Positions records from IBKR sometimes
                                 self.logfiler.info(
                                     "Contract {pos_desc} has no Put/Call indicator while copying IBKR Positions".format(
@@ -1559,6 +1712,9 @@ class PyRobot():
                                 char_position = position_desc.find('[')
                                 if char_position != -1:
                                     PutCall = position_desc[(char_position - 2):(char_position - 1)]
+                                    self.logfiler.info(
+                                    "Extracted P/C For {pos_desc} is {PorC}".format(
+                                        pos_desc=position_desc,PorC=PutCall))
                                 else:
                                     self.logfiler.info(
                                         "Contract {pos_desc} Did Not Have a [ in it to extract PutCall".format(
@@ -1698,18 +1854,29 @@ class PyRobot():
                 asset_type = self.portfolio.positions[position_record]['asset_type']
                 Mkt_Price_Position = float(self.portfolio.positions[position_record]['mktPrice'])
 
-                PutCall = self.portfolio.positions[position_record]['put_call_flag']
-                if PutCall not in ('P', 'C'):
+                if self.TradeOptions :
+                    PutCall = self.portfolio.positions[position_record]['put_call_flag']
+                else :
+                    PutCall = ''
+
+                if self.TradeOptions and PutCall not in ('P', 'C'):
                     self.logfiler.info(
                     "Contract {pos_desc} has no Put/Call indicator while copying positions".format(pos_desc=position_desc))
 
                 # There is some delay in the market prices in the portfolio positions.  So, updating the market price
                 # while copying to the bot.
-                quote_fields = [55, 7295, 86, 70, 71, 84, 31, 87]
-                quote_snapshot = self.session.market_data([str(position_symbol)], since=None, fields=quote_fields)
-                quote_record = quote_snapshot[0]
-                MktData_Value = float(quote_record['31'])
-                self.logfiler.info("Position Market Price Positions {Pos_Mkt}, versus MktData {MD_Mkt}".format(Pos_Mkt=str(Mkt_Price_Position),MD_Mkt=quote_record['31']))
+                #quote_fields = [55, 7295, 86, 70, 71, 84, 31, 87]
+                #quote_snapshot = self.session.market_data([str(position_symbol)], since=None, fields=quote_fields)
+                #quote_record = quote_snapshot[0]
+                #MktData_Value = 0
+                #if '31' in quote_record.keys():
+                #    MktData_Value = float(quote_record['31'])
+                #    self.logfiler.info("Position Market Price Positions {Pos_Mkt}, versus MktData {MD_Mkt}".format(
+                #        Pos_Mkt=str(Mkt_Price_Position), MD_Mkt=quote_record['31']))
+                #else :
+                #    self.logfiler.info("Position Market Price Positions {Pos_Mkt}, Last Price Not Available".format(
+                #        Pos_Mkt=str(Mkt_Price_Position)))
+                #    MktData_Value = Mkt_Price_Position
 
                 new_position = self.bot_portfolio.add_position(symbol=position_symbol,
                                                            asset_type=asset_type,
@@ -1717,7 +1884,7 @@ class PyRobot():
                                                            purchase_price=average_price,
                                                            description=position_desc,
                                                            put_call_flag=PutCall,
-                                                            avg_mkt_price = MktData_Value)
+                                                            avg_mkt_price = Mkt_Price_Position)
             over_ride_flag = 1
             if len(self.bot_portfolio.positions) > 0 :
                 for position_record in self.bot_portfolio.positions :
@@ -1730,6 +1897,9 @@ class PyRobot():
                         if bot_quantity > 0 :
                             put_counter += bot_quantity
                     elif (self.bot_portfolio.positions[position_record]['put_call_flag']  == 'C') :
+                        if bot_quantity > 0 :
+                            call_counter += bot_quantity
+                    elif (not self.TradeOptions) and (self.bot_portfolio.positions[position_record]['put_call_flag'] == '') :
                         if bot_quantity > 0 :
                             call_counter += bot_quantity
                     else :
@@ -1829,7 +1999,10 @@ class PyRobot():
                             OrderFound = True
                             contract_symbol = order['conid']
                             asset_type = order['secType']
-                            desc = order['description1'] + " " + order['description2']
+                            if self.TradeOptions :
+                                desc = order['description1'] + " " + order['description2']
+                            else :
+                                desc = order['description1']
                             quantity = order['remainingQuantity'] + order['filledQuantity']
                             self.stock_frame.loc[row_id, 'order_time'] = order_time
 
@@ -1844,7 +2017,7 @@ class PyRobot():
 
 
                                 # update bot synthetic positions while tracking buys and sells
-                                if order['side'] == 'BUY' and asset_type == 'OPT':
+                                if order['side'] == 'BUY' :
                                     putcall_flag = ''
                                     if desc.endswith('Call'):
                                         putcall_flag = 'C'
@@ -1852,6 +2025,8 @@ class PyRobot():
                                     elif desc.endswith('Put'):
                                         putcall_flag = 'P'
                                         cumulative_puts_quantity += quantity
+                                    elif not self.TradeOptions :
+                                        cumulative_calls_quantity += quantity
 
                                     if not self.bot_portfolio.in_portfolio(contract_symbol):
                                         self.bot_portfolio.add_position(symbol=contract_symbol,
@@ -1871,7 +2046,7 @@ class PyRobot():
                                     remaining_quantity += order['remainingQuantity']
 
                                         # update sell
-                                if order['side'] == 'SELL' and asset_type == 'OPT':
+                                if order['side'] == 'SELL' :
                                     putcall_flag = ''
                                     if desc.endswith('Call'):
                                         putcall_flag = 'C'
@@ -1879,6 +2054,9 @@ class PyRobot():
                                     elif desc.endswith('Put'):
                                         putcall_flag = 'P'
                                         cumulative_puts_quantity -= order['filledQuantity']
+                                    elif not self.TradeOptions :
+                                        cumulative_calls_quantity += order['filledQuantity']
+
                                     # J. Jones : We might have Sell orders presented in the list before buys.
                                     # In that case, we have to add a position with a negative quantity.
                                     if not self.bot_portfolio.in_portfolio(contract_symbol):
@@ -1894,16 +2072,21 @@ class PyRobot():
                                     remaining_quantity -= order['remainingQuantity']
 
                             else : # Order not filled, but we need to update counters to avoid adding more orders if some are pending
-                                if order['side'] == 'SELL' and asset_type == 'OPT':
+                                if order['side'] == 'SELL' :
                                     if desc.endswith('Call'):
                                         cumulative_calls_quantity -= 1
                                     elif desc.endswith('Put'):
                                         cumulative_puts_quantity -= 1
-                                if order['side'] == 'BUY' and asset_type == 'OPT':
+                                    elif not self.TradeOptions :
+                                        cumulative_calls_quantity -= 1
+
+                                if order['side'] == 'BUY' :
                                     if desc.endswith('Call'):
                                         cumulative_calls_quantity += 1
                                     elif desc.endswith('Put'):
                                         cumulative_puts_quantity += 1
+                                    elif not self.TradeOptions :
+                                        cumulative_calls_quantity += 1
 
                     if not OrderFound :
                         self.logfiler.info("Ignoring Order / Position For Order ID %d Not Originated By Bot", historical_order_id)

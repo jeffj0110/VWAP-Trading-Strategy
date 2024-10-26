@@ -35,7 +35,7 @@ class Indicators():
     to easily add technical indicators to a StockFrame.
     """
 
-    def __init__(self, price_data_frame: StockFrame, lgfile=None) -> None:
+    def __init__(self, price_data_frame: StockFrame, lgfile=None, TradeOptionsArg=True) -> None:
         """Initalizes the Indicator Client.
 
         Arguments:
@@ -56,6 +56,7 @@ class Indicators():
             >>> indicator_client.price_data_frame
         """
 
+        self.TradeOptions = TradeOptionsArg
         self._stock_frame: StockFrame = price_data_frame
         # change this price_groups = self._stock_frame.symbol_groups
         self._price_groups = price_data_frame.symbol_groups
@@ -493,6 +494,29 @@ class Indicators():
 
         return self._frame
 
+    def per_change_volume(self) -> pd.DataFrame:
+        # calculate per of change
+        self.sma_volume(3,'sma_volume')
+
+        per_of_change = []
+        count = 0
+
+        while count < len(self._frame):
+            if count < 3:
+                per_of_change.append(0)
+                prev = next = self._frame["sma_volume_3"][count]
+            else:
+                prev = self._frame["sma_volume_3"][count-1]
+                next = self._frame["volume"][count]
+                if prev != 0.0 :
+                    per_of_change.append(round(((next - prev) / prev) * 100, 3))
+                else :
+                    per_of_change.append(0.0)
+            count += 1
+
+        self._frame['per_chg_volume'] = pd.Series(per_of_change).values
+
+        return self._frame
     def vwap(self, start_time_vwap, column_name: str = 'vwap') -> pd.DataFrame:
         # """Calculates the Volume Weighted Adjusted Price (VWAP).
         #
@@ -611,6 +635,8 @@ class Indicators():
             "range": "NTM",
             "strikeCount" : 6
         }
+        if not self.TradeOptions :
+            return self._frame, None, None
 
         # Acquiring all the strikes and options is very time consuming, so only doing at the beginning of the session
         if len(self.option_data) == 0 :
@@ -877,24 +903,6 @@ class Indicators():
 
         return self._frame
 
-        #if not Option_Prices_Current :
-        #    self.logfiler.info("Option Quote Times {tm} Outside of Historical Price Data".format(tm=timestampstring))
-        #    return self._frame
-
-        #self._frame.loc[row_id, 'quoteTime_put'] = timestampstring
-        #self._frame.loc[row_id, 'right'] = put_df.loc[max_volume_puts_index, 'right']
-        #self._frame.loc[row_id, 'option_id'] = max_volume_puts_index
-        #self._frame.loc[row_id, 'strike'] = put_df.loc[max_volume_puts_index, 'strike']
-        #self._frame.loc[row_id, 'expiration'] = put_df.loc[max_volume_puts_index, 'maturityDate']
-        #self._frame.loc[row_id, 'description'] = Put_Description
-        #self._frame.loc[row_id, 'bid'] = put_df.loc[max_volume_puts_index, 'bid']
-        #self._frame.loc[row_id, 'ask'] = put_df.loc[max_volume_puts_index, 'ask']
-        #self._frame.loc[row_id, 'last'] = put_df.loc[max_volume_puts_index, 'last']
-        #self._frame.loc[row_id, 'total_volume'] = put_df.loc[max_volume_puts_index, 'total_volume']
-
-        #self._frame.loc[row_id, 'daysToExpiration'] = put_df.loc[max_volume_puts_index, 'daysToExpiration']
-
-        #return self._frame
 
     def populate_order_data_2(self, order, underlying_symbol, order_response, hist_orders):
         """Populates order data columns in dataframe"""
@@ -965,7 +973,10 @@ class Indicators():
                         OrderFound = True
                         contract_symbol = order['conid']
                         asset_type = order['secType']
-                        desc = order['description1'] + " " + order['description2']
+                        if 'description2' in order.keys() :
+                            desc = order['description1'] + " " + order['description2']
+                        else :
+                            desc = order['description1']
                         quantity = order['remainingQuantity'] + order['filledQuantity']
                         self._frame.loc[row_id, 'order_time'] = order_time
 
@@ -1085,7 +1096,10 @@ class Indicators():
     def add_manual_order_to_frame(self, row_id, order, order_time):
         hist_symbol = order['conid']
         hist_asset_type = order['secType']
-        hist_instrument = order['description1'] + " " + order['description2']
+        if 'description2' in order.keys() :
+            hist_instrument = order['description1'] + " " + order['description2']
+        else :
+            hist_instrument = order['description1']
         hist_execution_quantity = order['remainingQuantity'] + order['filledQuantity']
         hist_order_ID = order['orderId']
         hist_order_type = order['orderType']
@@ -1111,7 +1125,7 @@ class Indicators():
         return
 
 
-    def buy_condition(self, earliest_order, symbol, Signal_Volume_Threshold):
+    def buy_condition(self, earliest_order, symbol, Signal_Volume_Threshold, Trade_Options):
 
         signal_list = []
         #print("In Buy Condition****************************************")
@@ -1135,15 +1149,15 @@ class Indicators():
             if candle_datetime >= earliest_order and self._frame['vwap'][i] != 0.0 :
                 # Testing if signal validity via Volume test
                 # Repeat last signal unless significant volume is present
-                if self._frame['volume'][i] > Signal_Volume_Threshold:  # Threshold for accepting a candle as a valid signal
-                    # Buy CALLS condition (VWAP < Close) AND (Previous VWAP > Previous Close)
+                if self._frame['per_chg_volume'][i] > Signal_Volume_Threshold:  # Threshold for accepting a candle as a valid signal
+                #if True :    # Buy CALLS condition (VWAP < Close) AND (Previous VWAP > Previous Close)
                     # We only go long when the Close crosses over the VWAP.
-                    if (self._frame['vwap'][i] < self._frame['close'][i]) and (self._frame['vwap'][i-1] > self._frame['close'][i-1]) :
+                    if (self._frame['vwap'][i] < self._frame['close'][i])  and (self._frame['vwap'][i-1] > self._frame['close'][i-1]) :
                         no_action_calls_count = 0
                         buy_calls_count += 1
                         buy_puts_count = 0
                         signal_list.append('Buy Calls ' + str(buy_calls_count) + ' ' + symbol)
-                    elif (self._frame['vwap'][i] > self._frame['close'][i]) and ((self._frame['vwap'][i-1] < self._frame['close'][i-1])) :
+                    elif (self._frame['vwap'][i] > self._frame['close'][i])  and ((self._frame['vwap'][i-1] < self._frame['close'][i-1])) :
                     # Buy PUTS condition (VWAP > Close) AND (Previous VWAP < Previous Close)
                     # We only go short when the Close crosses below the VWAP.
                         no_action_puts_count = 0
@@ -1158,9 +1172,12 @@ class Indicators():
                         no_action_puts_count += 1
                         signal_list.append('No action')
                 else :
-                    # repeat last signal if not adequate volume
-                    last_signal_item = signal_list[-1]
-                    signal_list.append(last_signal_item)
+                    # no action if we didn't hit the volume threshold
+                    buy_calls_count = 0
+                    buy_puts_count = 0
+                    no_action_calls_count += 1
+                    no_action_puts_count += 1
+                    signal_list.append('No action')
             else :
                 buy_calls_count = 0
                 buy_puts_count = 0
@@ -1850,7 +1867,7 @@ class Indicators():
         return self._frame
 
 
-    def refresh(self, earliest_order, IBSession, symbol, conid, Signal_Volume_Threshold):
+    def refresh(self, earliest_order, IBSession, symbol, conid, Signal_Volume_Threshold, TradeOptions):
         """Updates the Indicator columns after adding the new rows."""
 
         # First update the groups since, we have new rows.
@@ -1881,8 +1898,10 @@ class Indicators():
         # Need to preserve order and option data
         # from previous frame
         self.max_option_chain(IBSession, symbol, conid)
+        self.per_change_volume()
         self.vwap(vwap_start_time, column_name='vwap')
-        self.buy_condition(earliest_order, symbol, Signal_Volume_Threshold)
+        self.macd()
+        self.buy_condition(earliest_order, symbol, Signal_Volume_Threshold, TradeOptions)
         self.logfiler.info("Ending Refresh Of Indicators")
 
         return

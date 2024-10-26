@@ -11,10 +11,9 @@ from functions import setup_func
 from indicator_calcs import Indicators
 
 
-def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Threshold) :
+def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Threshold, TradeStock : str) :
 
     symbol = inputsymbol
-    trading_options = True
 
     # Sets up the robot class, robot's portfolio, and the TDSession object
     trading_robot, IBClient = setup_func(logger)
@@ -37,17 +36,28 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
     # Convert data to a Data StockFrame.
     stock_frame = trading_robot.create_stock_frame(data=historical_prices['aggregated'])
 
+    TradeOptions = True
     First_Loop = True
+    if TradeStock == "N" :
+        TradeOptions = True
+    elif TradeStock == "Y" :
+        TradeOptions = False
+    else :
+        TradeOptions = True
+
+    trading_robot.TradeOptions = TradeOptions
 
     # If there are options positions for the underlying symbol for this session, the
     # bot will manage those (ie. sell them if signals indicate so).
 
     # Create an indicator Object.
-    indicator_client = Indicators(price_data_frame=stock_frame, lgfile=logger)
+    indicator_client = Indicators(price_data_frame=stock_frame, lgfile=logger, TradeOptionsArg= TradeOptions)
 
     # Add required indicators
     indicator_client.per_of_change()
-    indicator_client.max_option_chain(IBClient, symbol, trading_robot.conid)
+
+    if TradeOptions :
+        indicator_client.max_option_chain(IBClient, symbol, trading_robot.conid)
 
     # Only calculate vwap intra day, from 9:30am EST through 4pm EST
     est_tz = pytz.timezone('US/Eastern')
@@ -57,7 +67,8 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
     vwap_start_time = est_tz.localize(vwap_start_time)
 
     indicator_client.vwap(vwap_start_time, column_name='vwap')
-    stock_info_df, signal_list, init_order_list = indicator_client.buy_condition(trading_robot.earliest_order,symbol, Signal_Volume_Threshold)
+    indicator_client.per_change_volume()
+    stock_info_df, signal_list, init_order_list = indicator_client.buy_condition(trading_robot.earliest_order,symbol, Signal_Volume_Threshold, TradeOptions)
 
     # J. Jones
     # A user may create orders in their account outside of the bot for other symbols.  Those
@@ -81,6 +92,9 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
         else:
             logger.info('Default Buy Quantity Too High, Setting to 1')
             trading_robot.def_buy_quantity = 1
+    else :
+        trading_robot.def_buy_quantity = default_buy_quantity
+        logger.info('Default Buy Quantity Set To Zero')
 
     while True :
         if First_Loop :
@@ -100,7 +114,7 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
 
              # Refresh the Indicators.  Note : Sending previous cycle's dataframe to preserve
              # order data and option prices
-             indicator_client.refresh(trading_robot.earliest_order, IBClient, symbol, trading_robot.conid, Signal_Volume_Threshold)
+             indicator_client.refresh(trading_robot.earliest_order, IBClient, symbol, trading_robot.conid, Signal_Volume_Threshold, TradeOptions)
 
         # Get the stock DF from indicators
         stock_df = indicator_client.stock_data
@@ -115,16 +129,15 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
         trading_robot.stock_frame = stock_df
 
         # If we hit a stoploss with the previous candle,
-        # Then we don't enter into another position unless volumne in the last candle is over
-        # 4000 for 5 min candles.
+        # Then we don't enter into another position we exceed the perc change threshold
         # So, we set the last candle to StopLoss to keep from buying again until we see adequate volume again
 
-        if trading_robot.hit_stop_loss :
-            if trading_robot.stock_frame["volume"][-1] < Signal_Volume_Threshold :
-                trading_robot.stock_frame.at[trading_robot.stock_frame.index[-1], 'buy_condition'] = "StopGainLoss"
-                trading_robot.signals[-1] = "StopGainLoss"
-            else:
-                trading_robot.hit_stop_loss = False
+        #if trading_robot.hit_stop_loss :
+        #    if trading_robot.stock_frame["per_chg_volume"][-1] < Signal_Volume_Threshold :
+        #        trading_robot.stock_frame.at[trading_robot.stock_frame.index[-1], 'buy_condition'] = "StopGainLoss"
+        #        trading_robot.signals[-1] = "StopGainLoss"
+        #    else:
+        #        trading_robot.hit_stop_loss = False
 
         # logger.info('Last Buy Condition Value {dfbq}'.format(dfbq=trading_robot.stock_frame.at[trading_robot.stock_frame.index[-1], 'buy_condition']))
 
@@ -163,16 +176,17 @@ def Run_Bot(inputsymbol, default_buy_quantity, logger, now, Signal_Volume_Thresh
 def main(argv):
     inputsymbol = ''
     defBuyQuant = 0
-    Signal_Volume_Threshold = -1.0    # If Volume isn't above this threshold, the previous candle's signal is used.
+    Signal_Volume_Threshold = -100.0    # If Volume isn't above this threshold, the previous candle's signal is used.
+    TradeUnderlying = ''
 
     try:
-       opts, args = getopt.getopt(argv,"hs:v:q:")
+       opts, args = getopt.getopt(argv,"hs:v:q:u:")
     except getopt.GetoptError:
-       print('TradeBot -s <ticker_symbol> -v <volume threshold in candle> -q <Optional default buy quantity>')
+       print('TradeBot -s <ticker_symbol> -v <percentage change volume threshold in candle> -q <Optional default buy quantity> -u <y or n for trading underlying instead of options>')
        sys.exit(2)
     for opt, arg in opts:
        if opt == '-h':
-           print('TradeBot -s <ticker_symbol> -v <volume threshold in candle> -q <Optional default buy quantity>')
+           print('TradeBot -s <ticker_symbol> -v <percentage change volume threshold in candle> -q <Optional default buy quantity> -u <y or n for trading underlying instead of options>')
            sys.exit()
        elif opt in ("-s", "-S"):
            inputsymbol = arg
@@ -180,9 +194,23 @@ def main(argv):
            defBuyQuant = int(arg)
        elif opt in ('-v', '-V') :
            Signal_Volume_Threshold = float(arg)
+       elif opt in ('-u', '-U'):
+           TradeUnderlying = arg
+           if TradeUnderlying not in ('y', 'n', 'Y', 'N') :
+               print(
+                   'TradeBot -s <ticker_symbol> -v <percentage change volume threshold in candle> -q <Optional default buy quantity> -u <y or n for trading underlying instead of options>')
+               sys.exit()
+
 
     if inputsymbol == '' :
         inputsymbol = "No_Sym_Defined"
+
+    if TradeUnderlying == '':
+        TradeUnderlying = "N"
+
+    if not TradeUnderlying.isupper() :
+        TradeUnderlying = TradeUnderlying.upper()
+
     # J. Jones
     # Setting up a logging service for the bot to be able to retrieve
     # runtime messages from a log file
@@ -195,7 +223,7 @@ def main(argv):
     if inputsymbol == "No_Sym_Defined" :
        logger.info("No Input Symbol Provided")
        logger.info("Please start with a Symbol using -s command line argument")
-       logger.info("TradeBot -s <ticker_symbol> -v <volume threshold in candle> -q <Optional default buy quantity>")
+       logger.info("TradeBot -s <ticker_symbol> -v <percentage change volume threshold in candle> -q <Optional default buy quantity> -u <y or n for trading underlying instead of options>")
        exit()
     else :
        logger.info('Running With Ticker Symbol : {sym}'.format(sym=inputsymbol))
@@ -203,12 +231,17 @@ def main(argv):
     if Signal_Volume_Threshold == -1.0 or Signal_Volume_Threshold <= 0 :
         logger.info("Must provide a threshold for volume that qualifies for a valid signal")
         logger.info("Please start with a Number using -v command line argument")
-        logger.info("TradeBot -s <ticker_symbol> -v <volume threshold in candle> -q <Optional default buy quantity>")
+        logger.info("TradeBot -s <ticker_symbol> -v <percentage change volume threshold in candle> -q <Optional default buy quantity> -u <y or n for trading underlying instead of options>")
         exit()
     else :
         logger.info('Signal Volume Threshold : {sigvol}'.format(sigvol=str(Signal_Volume_Threshold)))
 
-    Run_Bot(inputsymbol, defBuyQuant, logger, now, Signal_Volume_Threshold)
+    if TradeUnderlying == 'Y' :
+        logger.info("Trading Underlying Stock For {ticker}".format(ticker=inputsymbol))
+    else :
+        logger.info("Trading Options Stock For {ticker}".format(ticker=inputsymbol))
+
+    Run_Bot(inputsymbol, defBuyQuant, logger, now, Signal_Volume_Threshold, TradeUnderlying)
 
     return True
 

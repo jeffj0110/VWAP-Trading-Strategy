@@ -90,7 +90,7 @@ def sell_stock(logfiler, session, symbol, option_symbol, instruction: str, quant
             'secType': str(option_symbol) + ':' + 'OPT',
             'orderType': orderType,
             'quantity': default_quantity,
-            'side': 'SELL',
+            'side': instruction,
             'tif': 'DAY'
             }
     else:
@@ -112,10 +112,10 @@ def sell_stock(logfiler, session, symbol, option_symbol, instruction: str, quant
         else : # We have messages to respond to, we by default just respond 'true' to all of them
             if 'messageIds' in order_response[0].keys() :
                 logfiler.info("Message received on order : {msg}".format(msg=order_response[0]['message']))
-                order_response_question = session.place_order_reply(reply_id = order_response[0]['id'], reply_resp=True)
+                order_response_question = session.place_order_reply(reply_id = order_response[0]['id'])
                 if 'messageIds' in order_response_question[0].keys() :
                     logfiler.info("Message received on order : {msg}".format(msg=order_response_question[0]['message']))
-                    order_response_question2 = session.place_order_reply(reply_id = order_response_question[0]['id'], reply_resp=True)
+                    order_response_question2 = session.place_order_reply(reply_id = order_response_question[0]['id'])
                 elif 'order_id' in order_response_question[0].keys() :
                     return order_template, order_response_question
                 if 'order_id' in order_response_question2[0].keys() :
@@ -143,15 +143,16 @@ def sell_stock(logfiler, session, symbol, option_symbol, instruction: str, quant
 # This allows us to use the module which ever way we want.
 def main(argv):
     underlying_symbol = ''
+    trade_inst = ''
     defQuant = 1
     try:
-       opts, args = getopt.getopt(argv,"hs:o:q:")
+       opts, args = getopt.getopt(argv,"hs:o:q:t:")
     except getopt.GetoptError:
-       print('Sell -s underlying_ticker -o <ticker_IBK_Number> -q <Optional quantity>')
+       print('Trade -s underlying_ticker -t BUY/SELL -o <ticker_IBK_Number> -q <Optional quantity>')
        sys.exit(2)
     for opt, arg in opts:
        if opt == '-h':
-          print('Sell -s underlying_ticker -o <ticker_IBK_Number> -q <Optional quantity>')
+          print('Trade -s underlying_ticker -t BUY/SELL -o <ticker_IBK_Number> -q <Optional quantity>')
           sys.exit()
        elif opt in ("-s", "-S"):
           underlying_symbol = arg
@@ -159,6 +160,8 @@ def main(argv):
           defQuant = int(arg)
        elif opt in ('-o', '-O') :
            option_symbol_number = int(arg)
+       elif opt in ('-t', '-T'):
+           trade_inst = arg
 
     if underlying_symbol == '' :
         underlying_symbol = "No_Sym_Defined"
@@ -167,33 +170,33 @@ def main(argv):
     # runtime messages from a log file
     est_tz = pytz.timezone('US/Eastern')
     now = datetime.now(est_tz).strftime("%Y_%m_%d-%H%M%S")
-    logfilename = "{}_logfile_{}".format(underlying_symbol, now)
+    logfilename = "{}_buysell_logfile_{}".format(underlying_symbol, now)
     logfilename = logfilename + ".txt"
     logger = m_logger.getlogger(logfilename)
 
-    if underlying_symbol == "No_Sym_Defined" :
-       logger.info("No Input Symbol Provided")
+    if underlying_symbol == "No_Sym_Defined" or trade_inst == '' :
+       logger.info("Either No Input Symbol Provided or no Trade Instruction Provided")
        logger.info("Please start with a Symbol using -s command line argument")
-       logger.info("Sell -s underlying_ticker -o <ticker_IBK_Number> -q <Optional quantity>")
+       logger.info("Use -s underlying_ticker -t BUY/SELL -o <ticker_IBK_Number> -q <Optional quantity>")
        exit()
     else :
        logger.info('Running With Ticker Symbol : {sym}'.format(sym=underlying_symbol))
 
     IBC_Session = _create_session()
 
-    positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
+    #positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
 
-    logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
+    #logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
 
 
-    order_template, order_response = sell_stock(logger, IBC_Session, underlying_symbol, option_symbol_number, "SELL", defQuant)
+    order_template, order_response = sell_stock(logger, IBC_Session, underlying_symbol, option_symbol_number, trade_inst, defQuant)
 
 
     logger.info("Order response {ord}".format(ord=json.dumps(order_response, indent=4)))
 
-    positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
+    #positions_response = IBC_Session.portfolio_account_positions(account_id="U7949765", page_id=0)
 
-    logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
+    #logger.info("Positions response {ord}".format(ord=json.dumps(positions_response, indent=4)))
 
     return True
 
