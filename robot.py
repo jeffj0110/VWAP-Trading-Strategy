@@ -20,6 +20,7 @@ from portfolio import Portfolio
 from stock_frame import StockFrame
 
 from ibw.client import IBClient
+from client import IBClient
 
 class PyRobot():
 

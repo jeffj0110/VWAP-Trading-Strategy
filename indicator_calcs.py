@@ -14,6 +14,8 @@ from typing import Optional
 from typing import Tuple
 from stock_frame import StockFrame
 from portfolio import Portfolio
+from client import IBClient
+
 
 import datetime
 from datetime import datetime
